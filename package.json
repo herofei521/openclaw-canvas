@@ -21,7 +21,9 @@
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "secrets:scan": "secretlint \"**/*\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@playwright/test": "^1.58.1",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.3.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.10.0",
@@ -43,10 +46,22 @@
     "electron-builder": "^25.1.8",
     "electron-vite": "^5.0.0",
     "happy-dom": "^20.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "oxlint": "^1.43.0",
     "prettier": "^3.8.1",
+    "secretlint": "^11.3.1",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vitest": "^4.0.18"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "oxlint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
