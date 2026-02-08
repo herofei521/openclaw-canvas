@@ -1,16 +1,33 @@
 import {
+  AGENT_PROVIDERS,
   DEFAULT_AGENT_SETTINGS,
   normalizeAgentSettings,
+  type AgentProvider,
   type AgentSettings,
 } from '../../settings/agentConfig'
 import type {
+  AgentLaunchMode,
+  AgentNodeData,
+  AgentRuntimeStatus,
+  ExecutionDirectoryMode,
   PersistedAppState,
   PersistedWorkspaceState,
+  WorkspaceNodeKind,
   WorkspaceState,
   PersistedTerminalNode,
 } from '../types'
 
 const STORAGE_KEY = 'cove:m0:workspace-state'
+
+const AGENT_RUNTIME_STATUSES: AgentRuntimeStatus[] = [
+  'running',
+  'exited',
+  'failed',
+  'stopped',
+  'restoring',
+]
+const AGENT_LAUNCH_MODES: AgentLaunchMode[] = ['new', 'resume']
+const EXECUTION_DIRECTORY_MODES: ExecutionDirectoryMode[] = ['workspace', 'custom']
 
 function getStorage(): Storage | null {
   if (typeof window === 'undefined') {
@@ -18,6 +35,84 @@ function getStorage(): Storage | null {
   }
 
   return window.localStorage ?? null
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
+function normalizeNodeKind(value: unknown): WorkspaceNodeKind {
+  return value === 'agent' ? 'agent' : 'terminal'
+}
+
+function normalizeAgentRuntimeStatus(value: unknown): AgentRuntimeStatus | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return AGENT_RUNTIME_STATUSES.includes(value as AgentRuntimeStatus)
+    ? (value as AgentRuntimeStatus)
+    : null
+}
+
+function normalizeLaunchMode(value: unknown): AgentLaunchMode {
+  if (typeof value !== 'string') {
+    return 'new'
+  }
+
+  return AGENT_LAUNCH_MODES.includes(value as AgentLaunchMode) ? (value as AgentLaunchMode) : 'new'
+}
+
+function normalizeDirectoryMode(value: unknown): ExecutionDirectoryMode {
+  if (typeof value !== 'string') {
+    return 'workspace'
+  }
+
+  return EXECUTION_DIRECTORY_MODES.includes(value as ExecutionDirectoryMode)
+    ? (value as ExecutionDirectoryMode)
+    : 'workspace'
+}
+
+function normalizeProvider(value: unknown): AgentProvider | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  return AGENT_PROVIDERS.includes(value as AgentProvider) ? (value as AgentProvider) : null
+}
+
+function ensurePersistedAgentData(value: unknown): AgentNodeData | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const record = value as Record<string, unknown>
+  const provider = normalizeProvider(record.provider)
+  const prompt = normalizeOptionalString(record.prompt)
+  const executionDirectory = normalizeOptionalString(record.executionDirectory)
+
+  if (!provider || !prompt || !executionDirectory) {
+    return null
+  }
+
+  return {
+    provider,
+    prompt,
+    model: normalizeOptionalString(record.model),
+    effectiveModel: normalizeOptionalString(record.effectiveModel),
+    launchMode: normalizeLaunchMode(record.launchMode),
+    resumeSessionId: normalizeOptionalString(record.resumeSessionId),
+    executionDirectory,
+    directoryMode: normalizeDirectoryMode(record.directoryMode),
+    customDirectory: normalizeOptionalString(record.customDirectory),
+    shouldCreateDirectory:
+      typeof record.shouldCreateDirectory === 'boolean' ? record.shouldCreateDirectory : false,
+  }
 }
 
 function ensurePersistedNode(node: unknown): PersistedTerminalNode | null {
@@ -48,11 +143,21 @@ function ensurePersistedNode(node: unknown): PersistedTerminalNode | null {
     return null
   }
 
+  const kind = normalizeNodeKind(record.kind)
+  const agent = ensurePersistedAgentData(record.agent)
+
   return {
     id,
     title,
     width,
     height,
+    kind,
+    status: normalizeAgentRuntimeStatus(record.status),
+    startedAt: normalizeOptionalString(record.startedAt),
+    endedAt: normalizeOptionalString(record.endedAt),
+    exitCode: typeof record.exitCode === 'number' ? record.exitCode : null,
+    lastError: normalizeOptionalString(record.lastError),
+    agent: kind === 'agent' ? agent : null,
     position: {
       x: positionRecord.x,
       y: positionRecord.y,
@@ -171,6 +276,13 @@ export function toPersistedState(
         position: node.position,
         width: node.data.width,
         height: node.data.height,
+        kind: node.data.kind,
+        status: node.data.status,
+        startedAt: node.data.startedAt,
+        endedAt: node.data.endedAt,
+        exitCode: node.data.exitCode,
+        lastError: node.data.lastError,
+        agent: node.data.agent,
       })),
     })),
     settings,

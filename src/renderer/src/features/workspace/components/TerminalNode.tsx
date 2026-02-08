@@ -3,26 +3,72 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import type { AgentRuntimeStatus, WorkspaceNodeKind } from '../types'
 
 interface TerminalNodeProps {
   sessionId: string
   title: string
+  kind: WorkspaceNodeKind
+  status: AgentRuntimeStatus | null
+  lastError: string | null
   width: number
   height: number
   onClose: () => void
   onResize: (size: { width: number; height: number }) => void
+  onStop?: () => void
+  onRerun?: () => void
+  onResume?: () => void
 }
 
 const MIN_WIDTH = 320
 const MIN_HEIGHT = 220
 
+function getStatusLabel(status: AgentRuntimeStatus | null): string {
+  switch (status) {
+    case 'running':
+      return 'Running'
+    case 'exited':
+      return 'Exited'
+    case 'failed':
+      return 'Failed'
+    case 'stopped':
+      return 'Stopped'
+    case 'restoring':
+      return 'Restoring'
+    default:
+      return 'Running'
+  }
+}
+
+function getStatusClassName(status: AgentRuntimeStatus | null): string {
+  switch (status) {
+    case 'exited':
+      return 'terminal-node__status--exited'
+    case 'failed':
+      return 'terminal-node__status--failed'
+    case 'stopped':
+      return 'terminal-node__status--stopped'
+    case 'restoring':
+      return 'terminal-node__status--restoring'
+    case 'running':
+    default:
+      return 'terminal-node__status--running'
+  }
+}
+
 export function TerminalNode({
   sessionId,
   title,
+  kind,
+  status,
+  lastError,
   width,
   height,
   onClose,
   onResize,
+  onStop,
+  onRerun,
+  onResume,
 }: TerminalNodeProps): JSX.Element {
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -159,6 +205,12 @@ export function TerminalNode({
     }
   }, [isResizing, onResize])
 
+  const isAgentNode = kind === 'agent'
+  const canStop =
+    isAgentNode &&
+    (status === 'running' || status === 'restoring' || status === null) &&
+    typeof onStop === 'function'
+
   return (
     <div
       className="terminal-node nowheel"
@@ -169,6 +221,48 @@ export function TerminalNode({
     >
       <div className="terminal-node__header" data-node-drag-handle="true">
         <span className="terminal-node__title">{title}</span>
+
+        {isAgentNode ? (
+          <div className="terminal-node__agent-controls nodrag">
+            <span className={`terminal-node__status ${getStatusClassName(status)}`}>
+              {getStatusLabel(status)}
+            </span>
+            <button
+              type="button"
+              className="terminal-node__action"
+              disabled={!canStop}
+              onClick={event => {
+                event.stopPropagation()
+                onStop?.()
+              }}
+            >
+              Stop
+            </button>
+            <button
+              type="button"
+              className="terminal-node__action"
+              disabled={typeof onRerun !== 'function'}
+              onClick={event => {
+                event.stopPropagation()
+                onRerun?.()
+              }}
+            >
+              Rerun
+            </button>
+            <button
+              type="button"
+              className="terminal-node__action"
+              disabled={typeof onResume !== 'function'}
+              onClick={event => {
+                event.stopPropagation()
+                onResume?.()
+              }}
+            >
+              Resume
+            </button>
+          </div>
+        ) : null}
+
         <button
           type="button"
           className="terminal-node__close nodrag"
@@ -180,6 +274,9 @@ export function TerminalNode({
           ×
         </button>
       </div>
+
+      {isAgentNode && lastError ? <div className="terminal-node__error">{lastError}</div> : null}
+
       <div ref={containerRef} className="terminal-node__terminal nodrag" />
       <button
         type="button"

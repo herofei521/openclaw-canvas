@@ -27,6 +27,11 @@ interface ProviderModelCatalogEntry {
 
 type ProviderModelCatalog = Record<AgentProvider, ProviderModelCatalogEntry>
 
+interface FocusRequest {
+  nodeId: string
+  sequence: number
+}
+
 function createInitialModelCatalog(): ProviderModelCatalog {
   return {
     'claude-code': {
@@ -58,6 +63,37 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error'
 }
 
+function toAgentNodeTitle(provider: AgentProvider, model: string | null): string {
+  const providerTitle = provider === 'codex' ? 'codex' : 'claude'
+  return `${providerTitle} · ${model ?? 'default-model'}`
+}
+
+function toRelativeTime(iso: string | null): string {
+  if (!iso) {
+    return 'just now'
+  }
+
+  const timestamp = Date.parse(iso)
+  if (Number.isNaN(timestamp)) {
+    return 'just now'
+  }
+
+  const deltaSeconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000))
+  if (deltaSeconds < 60) {
+    return 'just now'
+  }
+
+  if (deltaSeconds < 3600) {
+    return `${Math.floor(deltaSeconds / 60)}m ago`
+  }
+
+  if (deltaSeconds < 86400) {
+    return `${Math.floor(deltaSeconds / 3600)}h ago`
+  }
+
+  return `${Math.floor(deltaSeconds / 86400)}d ago`
+}
+
 function App(): JSX.Element {
   const [workspaces, setWorkspaces] = useState<WorkspaceState[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null)
@@ -67,6 +103,7 @@ function App(): JSX.Element {
   )
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
 
   useEffect(() => {
     const persisted = readPersistedState()
@@ -89,6 +126,63 @@ function App(): JSX.Element {
 
           const hydratedNodeResults = await Promise.allSettled(
             runtimeNodes.map(async node => {
+              if (node.data.kind === 'agent' && node.data.agent) {
+                try {
+                  const restoredAgent = await window.coveApi.agent.launch({
+                    provider: node.data.agent.provider,
+                    cwd: node.data.agent.executionDirectory,
+                    prompt: node.data.agent.prompt,
+                    mode: 'resume',
+                    model: node.data.agent.model,
+                    resumeSessionId: node.data.agent.resumeSessionId,
+                    cols: 80,
+                    rows: 24,
+                  })
+
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      sessionId: restoredAgent.sessionId,
+                      title: toAgentNodeTitle(
+                        node.data.agent.provider,
+                        restoredAgent.effectiveModel,
+                      ),
+                      status: 'running' as const,
+                      endedAt: null,
+                      exitCode: null,
+                      lastError: null,
+                      startedAt: node.data.startedAt ?? new Date().toISOString(),
+                      agent: {
+                        ...node.data.agent,
+                        effectiveModel: restoredAgent.effectiveModel,
+                        launchMode: restoredAgent.launchMode,
+                        resumeSessionId:
+                          restoredAgent.resumeSessionId ?? node.data.agent.resumeSessionId,
+                      },
+                    },
+                  }
+                } catch (error) {
+                  const fallback = await window.coveApi.pty.spawn({
+                    cwd: workspace.path,
+                    cols: 80,
+                    rows: 24,
+                  })
+
+                  return {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      sessionId: fallback.sessionId,
+                      status: 'failed' as const,
+                      endedAt: new Date().toISOString(),
+                      exitCode: null,
+                      lastError: `Resume failed: ${toErrorMessage(error)}`,
+                    },
+                  }
+                }
+              }
+
               const spawned = await window.coveApi.pty.spawn({
                 cwd: workspace.path,
                 cols: 80,
@@ -100,6 +194,13 @@ function App(): JSX.Element {
                 data: {
                   ...node.data,
                   sessionId: spawned.sessionId,
+                  kind: 'terminal' as const,
+                  status: null,
+                  startedAt: null,
+                  endedAt: null,
+                  exitCode: null,
+                  lastError: null,
+                  agent: null,
                 },
               }
             }),
@@ -128,7 +229,6 @@ function App(): JSX.Element {
       setActiveWorkspaceId(
         hasActive ? persisted.activeWorkspaceId : (restoredWorkspaces[0]?.id ?? null),
       )
-      setIsHydrated(true)
     }
 
     void restore().finally(() => {
@@ -206,6 +306,20 @@ function App(): JSX.Element {
   const activeProviderModel =
     resolveAgentModel(agentSettings, agentSettings.defaultProvider) ?? 'Default (Follow CLI)'
 
+  const activeWorkspaceAgents = useMemo(() => {
+    if (!activeWorkspace) {
+      return []
+    }
+
+    return activeWorkspace.nodes
+      .filter(node => node.data.kind === 'agent')
+      .sort((left, right) => {
+        const leftTime = left.data.startedAt ? Date.parse(left.data.startedAt) : 0
+        const rightTime = right.data.startedAt ? Date.parse(right.data.startedAt) : 0
+        return rightTime - leftTime
+      })
+  }, [activeWorkspace])
+
   const handleAddWorkspace = async (): Promise<void> => {
     const selected = await window.coveApi.workspace.selectDirectory()
     if (!selected) {
@@ -225,26 +339,30 @@ function App(): JSX.Element {
 
     setWorkspaces(prev => [...prev, nextWorkspace])
     setActiveWorkspaceId(nextWorkspace.id)
+    setFocusRequest(null)
   }
 
-  const handleWorkspaceNodesChange = (nodes: WorkspaceState['nodes']): void => {
-    if (!activeWorkspace) {
-      return
-    }
+  const handleWorkspaceNodesChange = useCallback(
+    (nodes: WorkspaceState['nodes']): void => {
+      if (!activeWorkspace) {
+        return
+      }
 
-    setWorkspaces(prev =>
-      prev.map(workspace => {
-        if (workspace.id !== activeWorkspace.id) {
-          return workspace
-        }
+      setWorkspaces(prev =>
+        prev.map(workspace => {
+          if (workspace.id !== activeWorkspace.id) {
+            return workspace
+          }
 
-        return {
-          ...workspace,
-          nodes,
-        }
-      }),
-    )
-  }
+          return {
+            ...workspace,
+            nodes,
+          }
+        }),
+      )
+    },
+    [activeWorkspace],
+  )
 
   return (
     <>
@@ -270,21 +388,71 @@ function App(): JSX.Element {
 
             {workspaces.map(workspace => {
               const isActive = workspace.id === activeWorkspaceId
+              const terminalCount = workspace.nodes.filter(
+                node => node.data.kind === 'terminal',
+              ).length
+              const agentCount = workspace.nodes.filter(node => node.data.kind === 'agent').length
+              const metaText =
+                agentCount > 0
+                  ? `${terminalCount} terminals · ${agentCount} agents`
+                  : `${terminalCount} terminals`
+
               return (
                 <button
                   type="button"
                   key={workspace.id}
                   className={`workspace-item ${isActive ? 'workspace-item--active' : ''}`}
-                  onClick={() => setActiveWorkspaceId(workspace.id)}
+                  onClick={() => {
+                    setActiveWorkspaceId(workspace.id)
+                    setFocusRequest(null)
+                  }}
                   title={workspace.path}
                 >
                   <span className="workspace-item__name">{workspace.name}</span>
                   <span className="workspace-item__path">{workspace.path}</span>
-                  <span className="workspace-item__meta">{workspace.nodes.length} terminals</span>
+                  <span className="workspace-item__meta">{metaText}</span>
                 </button>
               )
             })}
           </div>
+
+          <section className="workspace-sidebar__agents">
+            <div className="workspace-sidebar__agents-header">
+              <span>Agents</span>
+              <span>{activeWorkspaceAgents.length}</span>
+            </div>
+
+            {activeWorkspaceAgents.length === 0 ? (
+              <p className="workspace-sidebar__agents-empty">No agent sessions.</p>
+            ) : (
+              activeWorkspaceAgents.map(node => {
+                const provider = node.data.agent?.provider
+                const providerText = provider ? AGENT_PROVIDER_LABEL[provider] : 'Agent'
+                const statusText = node.data.status ?? 'running'
+                const startedText = toRelativeTime(node.data.startedAt)
+
+                return (
+                  <button
+                    type="button"
+                    key={node.id}
+                    className="workspace-agent-item"
+                    data-testid={`workspace-agent-item-${node.id}`}
+                    onClick={() => {
+                      setFocusRequest(prev => ({
+                        nodeId: node.id,
+                        sequence: (prev?.sequence ?? 0) + 1,
+                      }))
+                    }}
+                  >
+                    <span className="workspace-agent-item__title">{node.data.title}</span>
+                    <span className="workspace-agent-item__meta">
+                      {providerText} · {statusText} · {startedText}
+                    </span>
+                  </button>
+                )
+              })
+            )}
+          </section>
 
           <div className="workspace-sidebar__footer">
             <button
@@ -306,6 +474,8 @@ function App(): JSX.Element {
               nodes={activeWorkspace.nodes}
               onNodesChange={handleWorkspaceNodesChange}
               agentSettings={agentSettings}
+              focusNodeId={focusRequest?.nodeId ?? null}
+              focusSequence={focusRequest?.sequence ?? 0}
             />
           ) : (
             <div className="workspace-empty-state">

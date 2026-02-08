@@ -11,9 +11,15 @@ import {
   type Node,
   type NodeChange,
 } from '@xyflow/react'
-import { resolveAgentModel, type AgentSettings } from '../../settings/agentConfig'
+import {
+  AGENT_PROVIDER_LABEL,
+  AGENT_PROVIDERS,
+  resolveAgentModel,
+  type AgentProvider,
+  type AgentSettings,
+} from '../../settings/agentConfig'
 import { TerminalNode } from './TerminalNode'
-import type { Point, Size, TerminalNodeData } from '../types'
+import type { AgentNodeData, Point, Size, TerminalNodeData } from '../types'
 import {
   clampSizeToNonOverlapping,
   findNearestFreePosition,
@@ -25,6 +31,8 @@ interface WorkspaceCanvasProps {
   nodes: Node<TerminalNodeData>[]
   onNodesChange: (nodes: Node<TerminalNodeData>[]) => void
   agentSettings: AgentSettings
+  focusNodeId?: string | null
+  focusSequence?: number
 }
 
 interface ContextMenuState {
@@ -36,9 +44,22 @@ interface ContextMenuState {
 
 interface AgentLauncherState {
   anchor: Point
+  provider: AgentProvider
   prompt: string
+  model: string
+  directoryMode: 'workspace' | 'custom'
+  customDirectory: string
+  shouldCreateDirectory: boolean
   isLaunching: boolean
   error: string | null
+}
+
+interface CreateNodeInput {
+  sessionId: string
+  title: string
+  anchor: Point
+  kind: 'terminal' | 'agent'
+  agent?: AgentNodeData | null
 }
 
 const DEFAULT_SIZE: Size = {
@@ -63,50 +84,93 @@ function toErrorMessage(error: unknown): string {
   return 'Unknown error'
 }
 
+function providerLabel(provider: AgentProvider): string {
+  return AGENT_PROVIDER_LABEL[provider]
+}
+
+function providerTitlePrefix(provider: AgentProvider): string {
+  return provider === 'codex' ? 'codex' : 'claude'
+}
+
+function normalizeDirectoryPath(workspacePath: string, customDirectory: string): string {
+  const trimmed = customDirectory.trim()
+  if (trimmed.length === 0) {
+    return ''
+  }
+
+  if (/^([a-zA-Z]:[\\/]|\/)/.test(trimmed)) {
+    return trimmed
+  }
+
+  const base = workspacePath.replace(/[\\/]+$/, '')
+  const normalizedCustom = trimmed.replace(/^[./\\]+/, '')
+  return `${base}/${normalizedCustom}`
+}
+
+function toSuggestedWorktreePath(workspacePath: string, provider: AgentProvider): string {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  return `${workspacePath}/.cove/worktrees/${providerTitlePrefix(provider)}-${stamp}`
+}
+
 function WorkspaceCanvasInner({
   workspacePath,
   nodes,
   onNodesChange,
   agentSettings,
+  focusNodeId,
+  focusSequence,
 }: WorkspaceCanvasProps): JSX.Element {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [agentLauncher, setAgentLauncher] = useState<AgentLauncherState | null>(null)
 
   const reactFlow = useReactFlow<TerminalNodeData>()
 
+  const nodesRef = useRef(nodes)
   const closeNodeRef = useRef<(nodeId: string) => Promise<void>>(async () => undefined)
   const resizeNodeRef = useRef<(nodeId: string, desiredSize: Size) => void>(() => undefined)
+  const stopAgentNodeRef = useRef<(nodeId: string) => Promise<void>>(async () => undefined)
+  const rerunAgentNodeRef = useRef<(nodeId: string) => Promise<void>>(async () => undefined)
+  const resumeAgentNodeRef = useRef<(nodeId: string) => Promise<void>>(async () => undefined)
+
+  useEffect(() => {
+    nodesRef.current = nodes
+  }, [nodes])
+
+  const setNodes = useCallback(
+    (updater: (prevNodes: Node<TerminalNodeData>[]) => Node<TerminalNodeData>[]) => {
+      const nextNodes = updater(nodesRef.current)
+      nodesRef.current = nextNodes
+      onNodesChange(nextNodes)
+    },
+    [onNodesChange],
+  )
 
   const upsertNode = useCallback(
     (nextNode: Node<TerminalNodeData>) => {
-      onNodesChange(nodes.map(node => (node.id === nextNode.id ? nextNode : node)))
+      setNodes(prevNodes => prevNodes.map(node => (node.id === nextNode.id ? nextNode : node)))
     },
-    [nodes, onNodesChange],
+    [setNodes],
   )
 
   const closeNode = useCallback(
     async (nodeId: string) => {
-      const target = nodes.find(node => node.id === nodeId)
+      const target = nodesRef.current.find(node => node.id === nodeId)
       if (target) {
         await window.coveApi.pty.kill({ sessionId: target.data.sessionId })
       }
 
-      const next = nodes.filter(node => node.id !== nodeId)
-      onNodesChange(next)
+      setNodes(prevNodes => prevNodes.filter(node => node.id !== nodeId))
     },
-    [nodes, onNodesChange],
+    [setNodes],
   )
 
-  const normalizePosition = useCallback(
-    (nodeId: string, desired: Point, size: Size): Point => {
-      return findNearestFreePosition(desired, size, nodes, nodeId)
-    },
-    [nodes],
-  )
+  const normalizePosition = useCallback((nodeId: string, desired: Point, size: Size): Point => {
+    return findNearestFreePosition(desired, size, nodesRef.current, nodeId)
+  }, [])
 
   const resizeNode = useCallback(
     (nodeId: string, desiredSize: Size) => {
-      const node = nodes.find(item => item.id === nodeId)
+      const node = nodesRef.current.find(item => item.id === nodeId)
       if (!node) {
         return
       }
@@ -115,7 +179,7 @@ function WorkspaceCanvasInner({
         node.position,
         desiredSize,
         MIN_SIZE,
-        nodes,
+        nodesRef.current,
         nodeId,
       )
 
@@ -128,7 +192,207 @@ function WorkspaceCanvasInner({
         },
       })
     },
-    [nodes, upsertNode],
+    [upsertNode],
+  )
+
+  const buildAgentNodeTitle = useCallback(
+    (provider: AgentProvider, effectiveModel: string | null): string => {
+      return `${providerTitlePrefix(provider)} · ${effectiveModel ?? 'default-model'}`
+    },
+    [],
+  )
+
+  const createNodeForSession = useCallback(
+    async ({ sessionId, title, anchor, kind, agent }: CreateNodeInput): Promise<boolean> => {
+      const currentNodes = nodesRef.current
+      const nonOverlappingPosition = findNearestFreePosition(anchor, DEFAULT_SIZE, currentNodes)
+      const canPlace = isPositionAvailable(nonOverlappingPosition, DEFAULT_SIZE, currentNodes)
+
+      if (!canPlace) {
+        await window.coveApi.pty.kill({ sessionId })
+        window.alert('当前视图附近没有可用空位，请先移动或关闭部分终端窗口。')
+        return false
+      }
+
+      const now = new Date().toISOString()
+      const nextNode: Node<TerminalNodeData> = {
+        id: crypto.randomUUID(),
+        type: 'terminalNode',
+        position: nonOverlappingPosition,
+        data: {
+          sessionId,
+          title,
+          width: DEFAULT_SIZE.width,
+          height: DEFAULT_SIZE.height,
+          kind,
+          status: kind === 'agent' ? 'running' : null,
+          startedAt: kind === 'agent' ? now : null,
+          endedAt: null,
+          exitCode: null,
+          lastError: null,
+          agent: kind === 'agent' ? (agent ?? null) : null,
+        },
+        draggable: true,
+        selectable: true,
+      }
+
+      setNodes(prevNodes => [...prevNodes, nextNode])
+      return true
+    },
+    [setNodes],
+  )
+
+  const launchAgentInNode = useCallback(
+    async (nodeId: string, mode: 'new' | 'resume') => {
+      const node = nodesRef.current.find(item => item.id === nodeId)
+      if (!node || node.data.kind !== 'agent' || !node.data.agent) {
+        return
+      }
+
+      const launchData = node.data.agent
+
+      if (mode === 'new' && launchData.prompt.trim().length === 0) {
+        setNodes(prevNodes =>
+          prevNodes.map(item => {
+            if (item.id !== nodeId) {
+              return item
+            }
+
+            return {
+              ...item,
+              data: {
+                ...item.data,
+                status: 'failed',
+                lastError: '任务提示词不能为空。',
+              },
+            }
+          }),
+        )
+        return
+      }
+
+      if (launchData.shouldCreateDirectory && launchData.directoryMode === 'custom') {
+        await window.coveApi.workspace.ensureDirectory({ path: launchData.executionDirectory })
+      }
+
+      if (node.data.sessionId.length > 0) {
+        await window.coveApi.pty.kill({ sessionId: node.data.sessionId })
+      }
+
+      setNodes(prevNodes =>
+        prevNodes.map(item => {
+          if (item.id !== nodeId) {
+            return item
+          }
+
+          return {
+            ...item,
+            data: {
+              ...item.data,
+              status: 'restoring',
+              endedAt: null,
+              exitCode: null,
+              lastError: null,
+            },
+          }
+        }),
+      )
+
+      try {
+        const launched = await window.coveApi.agent.launch({
+          provider: launchData.provider,
+          cwd: launchData.executionDirectory,
+          prompt: launchData.prompt,
+          mode,
+          model: launchData.model,
+          resumeSessionId: mode === 'resume' ? launchData.resumeSessionId : null,
+          cols: 80,
+          rows: 24,
+        })
+
+        setNodes(prevNodes =>
+          prevNodes.map(item => {
+            if (item.id !== nodeId) {
+              return item
+            }
+
+            const nextAgentData: AgentNodeData = {
+              ...launchData,
+              launchMode: launched.launchMode,
+              effectiveModel: launched.effectiveModel,
+              resumeSessionId: launched.resumeSessionId ?? launchData.resumeSessionId,
+            }
+
+            return {
+              ...item,
+              data: {
+                ...item.data,
+                sessionId: launched.sessionId,
+                title: buildAgentNodeTitle(launchData.provider, launched.effectiveModel),
+                status: 'running',
+                startedAt:
+                  mode === 'new' ? new Date().toISOString() : (item.data.startedAt ?? null),
+                endedAt: null,
+                exitCode: null,
+                lastError: null,
+                agent: nextAgentData,
+              },
+            }
+          }),
+        )
+      } catch (error) {
+        const errorMessage = `Agent 启动失败：${toErrorMessage(error)}`
+
+        setNodes(prevNodes =>
+          prevNodes.map(item => {
+            if (item.id !== nodeId) {
+              return item
+            }
+
+            return {
+              ...item,
+              data: {
+                ...item.data,
+                status: 'failed',
+                endedAt: new Date().toISOString(),
+                lastError: errorMessage,
+              },
+            }
+          }),
+        )
+      }
+    },
+    [buildAgentNodeTitle, setNodes],
+  )
+
+  const stopAgentNode = useCallback(
+    async (nodeId: string) => {
+      const node = nodesRef.current.find(item => item.id === nodeId)
+      if (!node || node.data.kind !== 'agent') {
+        return
+      }
+
+      await window.coveApi.pty.kill({ sessionId: node.data.sessionId })
+
+      setNodes(prevNodes =>
+        prevNodes.map(item => {
+          if (item.id !== nodeId) {
+            return item
+          }
+
+          return {
+            ...item,
+            data: {
+              ...item.data,
+              status: 'stopped',
+              endedAt: new Date().toISOString(),
+              exitCode: null,
+            },
+          }
+        }),
+      )
+    },
+    [setNodes],
   )
 
   useEffect(() => {
@@ -139,18 +403,108 @@ function WorkspaceCanvasInner({
     resizeNodeRef.current = resizeNode
   }, [resizeNode])
 
+  useEffect(() => {
+    stopAgentNodeRef.current = stopAgentNode
+  }, [stopAgentNode])
+
+  useEffect(() => {
+    rerunAgentNodeRef.current = async nodeId => {
+      await launchAgentInNode(nodeId, 'new')
+    }
+  }, [launchAgentInNode])
+
+  useEffect(() => {
+    resumeAgentNodeRef.current = async nodeId => {
+      await launchAgentInNode(nodeId, 'resume')
+    }
+  }, [launchAgentInNode])
+
+  useEffect(() => {
+    const unsubscribeExit = window.coveApi.pty.onExit(event => {
+      setNodes(prevNodes =>
+        prevNodes.map(node => {
+          if (node.data.sessionId !== event.sessionId || node.data.kind !== 'agent') {
+            return node
+          }
+
+          if (node.data.status === 'stopped') {
+            return node
+          }
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: event.exitCode === 0 ? 'exited' : 'failed',
+              endedAt: new Date().toISOString(),
+              exitCode: event.exitCode,
+            },
+          }
+        }),
+      )
+    })
+
+    return () => {
+      unsubscribeExit()
+    }
+  }, [setNodes])
+
+  useEffect(() => {
+    if (!focusNodeId) {
+      return
+    }
+
+    const target = nodes.find(node => node.id === focusNodeId)
+    if (!target) {
+      return
+    }
+
+    reactFlow.setCenter(
+      target.position.x + target.data.width / 2,
+      target.position.y + target.data.height / 2,
+      {
+        duration: 320,
+        zoom: Math.max(0.35, reactFlow.getZoom()),
+      },
+    )
+  }, [focusNodeId, focusSequence, nodes, reactFlow])
+
   const nodeTypes = useMemo(
     () => ({
       terminalNode: ({ data, id }: { data: TerminalNodeData; id: string }) => (
         <TerminalNode
           sessionId={data.sessionId}
           title={data.title}
+          kind={data.kind}
+          status={data.status}
+          lastError={data.lastError}
           width={data.width}
           height={data.height}
           onClose={() => {
             void closeNodeRef.current(id)
           }}
           onResize={size => resizeNodeRef.current(id, size)}
+          onStop={
+            data.kind === 'agent'
+              ? () => {
+                  void stopAgentNodeRef.current(id)
+                }
+              : undefined
+          }
+          onRerun={
+            data.kind === 'agent'
+              ? () => {
+                  void rerunAgentNodeRef.current(id)
+                }
+              : undefined
+          }
+          onResume={
+            data.kind === 'agent'
+              ? () => {
+                  void resumeAgentNodeRef.current(id)
+                }
+              : undefined
+          }
         />
       ),
     }),
@@ -175,37 +529,6 @@ function WorkspaceCanvasInner({
     [reactFlow],
   )
 
-  const createNodeForSession = useCallback(
-    async (sessionId: string, title: string, anchor: Point): Promise<boolean> => {
-      const nonOverlappingPosition = findNearestFreePosition(anchor, DEFAULT_SIZE, nodes)
-      const canPlace = isPositionAvailable(nonOverlappingPosition, DEFAULT_SIZE, nodes)
-
-      if (!canPlace) {
-        await window.coveApi.pty.kill({ sessionId })
-        window.alert('当前视图附近没有可用空位，请先移动或关闭部分终端窗口。')
-        return false
-      }
-
-      const nextNode: Node<TerminalNodeData> = {
-        id: crypto.randomUUID(),
-        type: 'terminalNode',
-        position: nonOverlappingPosition,
-        data: {
-          sessionId,
-          title,
-          width: DEFAULT_SIZE.width,
-          height: DEFAULT_SIZE.height,
-        },
-        draggable: true,
-        selectable: true,
-      }
-
-      onNodesChange([...nodes, nextNode])
-      return true
-    },
-    [nodes, onNodesChange],
-  )
-
   const createTerminalNode = useCallback(async () => {
     if (!contextMenu) {
       return
@@ -224,8 +547,13 @@ function WorkspaceCanvasInner({
       rows: 24,
     })
 
-    await createNodeForSession(spawned.sessionId, `terminal-${nodes.length + 1}`, anchor)
-  }, [contextMenu, createNodeForSession, nodes.length, workspacePath])
+    await createNodeForSession({
+      sessionId: spawned.sessionId,
+      title: `terminal-${nodesRef.current.length + 1}`,
+      anchor,
+      kind: 'terminal',
+    })
+  }, [contextMenu, createNodeForSession, workspacePath])
 
   const openAgentLauncher = useCallback(() => {
     if (!contextMenu) {
@@ -237,14 +565,22 @@ function WorkspaceCanvasInner({
       y: contextMenu.flowY,
     }
 
+    const initialProvider = agentSettings.defaultProvider
+    const defaultModel = resolveAgentModel(agentSettings, initialProvider) ?? ''
+
     setContextMenu(null)
     setAgentLauncher({
       anchor,
+      provider: initialProvider,
       prompt: '',
+      model: defaultModel,
+      directoryMode: 'workspace',
+      customDirectory: toSuggestedWorktreePath(workspacePath, initialProvider),
+      shouldCreateDirectory: true,
       isLaunching: false,
       error: null,
     })
-  }, [contextMenu])
+  }, [agentSettings, contextMenu, workspacePath])
 
   const closeAgentLauncher = useCallback(() => {
     setAgentLauncher(prev => {
@@ -256,7 +592,7 @@ function WorkspaceCanvasInner({
     })
   }, [])
 
-  const launchDefaultAgentNode = useCallback(async () => {
+  const launchAgentNode = useCallback(async () => {
     if (!agentLauncher) {
       return
     }
@@ -274,6 +610,25 @@ function WorkspaceCanvasInner({
       return
     }
 
+    const normalizedModel = agentLauncher.model.trim()
+
+    const executionDirectory =
+      agentLauncher.directoryMode === 'workspace'
+        ? workspacePath
+        : normalizeDirectoryPath(workspacePath, agentLauncher.customDirectory)
+
+    if (executionDirectory.trim().length === 0) {
+      setAgentLauncher(prev =>
+        prev
+          ? {
+              ...prev,
+              error: '请填写有效的执行目录。',
+            }
+          : prev,
+      )
+      return
+    }
+
     setAgentLauncher(prev =>
       prev
         ? {
@@ -284,27 +639,44 @@ function WorkspaceCanvasInner({
         : prev,
     )
 
-    const provider = agentSettings.defaultProvider
-    const model = resolveAgentModel(agentSettings, provider)
-
     try {
+      if (agentLauncher.directoryMode === 'custom' && agentLauncher.shouldCreateDirectory) {
+        await window.coveApi.workspace.ensureDirectory({ path: executionDirectory })
+      }
+
       const launched = await window.coveApi.agent.launch({
-        provider,
-        cwd: workspacePath,
+        provider: agentLauncher.provider,
+        cwd: executionDirectory,
         prompt: normalizedPrompt,
-        model,
+        mode: 'new',
+        model: normalizedModel.length > 0 ? normalizedModel : null,
         cols: 80,
         rows: 24,
       })
 
-      const titleParts = [provider === 'codex' ? 'codex' : 'claude']
-      titleParts.push(launched.effectiveModel ?? 'default-model')
+      const modelLabel =
+        launched.effectiveModel ?? (normalizedModel.length > 0 ? normalizedModel : null)
+      const agentData: AgentNodeData = {
+        provider: agentLauncher.provider,
+        prompt: normalizedPrompt,
+        model: normalizedModel.length > 0 ? normalizedModel : null,
+        effectiveModel: launched.effectiveModel,
+        launchMode: launched.launchMode,
+        resumeSessionId: launched.resumeSessionId,
+        executionDirectory,
+        directoryMode: agentLauncher.directoryMode,
+        customDirectory:
+          agentLauncher.directoryMode === 'custom' ? agentLauncher.customDirectory.trim() : null,
+        shouldCreateDirectory: agentLauncher.shouldCreateDirectory,
+      }
 
-      const created = await createNodeForSession(
-        launched.sessionId,
-        titleParts.join(' · '),
-        agentLauncher.anchor,
-      )
+      const created = await createNodeForSession({
+        sessionId: launched.sessionId,
+        title: buildAgentNodeTitle(agentLauncher.provider, modelLabel),
+        anchor: agentLauncher.anchor,
+        kind: 'agent',
+        agent: agentData,
+      })
 
       if (!created) {
         setAgentLauncher(prev =>
@@ -331,7 +703,7 @@ function WorkspaceCanvasInner({
           : prev,
       )
     }
-  }, [agentLauncher, agentSettings, createNodeForSession, workspacePath])
+  }, [agentLauncher, buildAgentNodeTitle, createNodeForSession, workspacePath])
 
   const applyChanges = useCallback(
     (changes: NodeChange<TerminalNodeData>[]) => {
@@ -339,12 +711,13 @@ function WorkspaceCanvasInner({
         return
       }
 
+      const currentNodes = nodesRef.current
       const removedIds = new Set(
         changes.filter(change => change.type === 'remove').map(change => change.id),
       )
 
       if (removedIds.size > 0) {
-        nodes.forEach(node => {
+        currentNodes.forEach(node => {
           if (!removedIds.has(node.id)) {
             return
           }
@@ -353,7 +726,7 @@ function WorkspaceCanvasInner({
         })
       }
 
-      const survivingNodes = nodes.filter(node => !removedIds.has(node.id))
+      const survivingNodes = currentNodes.filter(node => !removedIds.has(node.id))
       const nonRemoveChanges = changes.filter(change => change.type !== 'remove')
 
       let nextNodes = applyNodeChanges(nonRemoveChanges, survivingNodes)
@@ -385,14 +758,25 @@ function WorkspaceCanvasInner({
         })
       }
 
+      nodesRef.current = nextNodes
       onNodesChange(nextNodes)
     },
-    [nodes, normalizePosition, onNodesChange],
+    [normalizePosition, onNodesChange],
   )
 
-  const activeProviderLabel = agentSettings.defaultProvider === 'codex' ? 'Codex' : 'Claude Code'
-  const activeModelLabel =
-    resolveAgentModel(agentSettings, agentSettings.defaultProvider) ?? 'Default'
+  const launcherModelOptions = useMemo(() => {
+    if (!agentLauncher) {
+      return []
+    }
+
+    const provider = agentLauncher.provider
+    const providerOptions = agentSettings.customModelOptionsByProvider[provider] ?? []
+    const defaultModel = resolveAgentModel(agentSettings, provider)
+
+    return [
+      ...new Set([...providerOptions, defaultModel ?? '', agentLauncher.model].filter(Boolean)),
+    ]
+  }, [agentLauncher, agentSettings])
 
   return (
     <div className="workspace-canvas" onClick={() => setContextMenu(null)}>
@@ -449,7 +833,7 @@ function WorkspaceCanvasInner({
               openAgentLauncher()
             }}
           >
-            Run Default Agent
+            Run Agent
           </button>
         </div>
       ) : null}
@@ -468,28 +852,192 @@ function WorkspaceCanvasInner({
               event.stopPropagation()
             }}
           >
-            <h3>Run Default Agent</h3>
-            <p className="workspace-agent-launcher__meta">
-              Provider: {activeProviderLabel} · Model: {activeModelLabel}
-            </p>
-            <textarea
-              data-testid="workspace-agent-launch-prompt"
-              placeholder="输入任务提示词..."
-              value={agentLauncher.prompt}
-              disabled={agentLauncher.isLaunching}
-              onChange={event => {
-                const nextPrompt = event.target.value
-                setAgentLauncher(prev =>
-                  prev
-                    ? {
-                        ...prev,
-                        prompt: nextPrompt,
-                        error: null,
-                      }
-                    : prev,
-                )
-              }}
-            />
+            <h3>Run Agent</h3>
+
+            <div className="workspace-agent-launcher__field-row">
+              <label htmlFor="workspace-agent-provider">Provider</label>
+              <select
+                id="workspace-agent-provider"
+                data-testid="workspace-agent-launch-provider"
+                value={agentLauncher.provider}
+                disabled={agentLauncher.isLaunching}
+                onChange={event => {
+                  const nextProvider = event.target.value as AgentProvider
+                  setAgentLauncher(prev => {
+                    if (!prev) {
+                      return prev
+                    }
+
+                    return {
+                      ...prev,
+                      provider: nextProvider,
+                      model: resolveAgentModel(agentSettings, nextProvider) ?? '',
+                      customDirectory:
+                        prev.directoryMode === 'custom'
+                          ? toSuggestedWorktreePath(workspacePath, nextProvider)
+                          : prev.customDirectory,
+                      error: null,
+                    }
+                  })
+                }}
+              >
+                {AGENT_PROVIDERS.map(provider => (
+                  <option value={provider} key={provider}>
+                    {providerLabel(provider)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="workspace-agent-launcher__field-row">
+              <label htmlFor="workspace-agent-model">
+                Model (optional, empty = follow CLI/default)
+              </label>
+              <input
+                id="workspace-agent-model"
+                data-testid="workspace-agent-launch-model"
+                list="workspace-agent-model-options"
+                value={agentLauncher.model}
+                disabled={agentLauncher.isLaunching}
+                placeholder="e.g. gpt-5.2-codex or claude-opus-4-6"
+                onChange={event => {
+                  const nextModel = event.target.value
+                  setAgentLauncher(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          model: nextModel,
+                          error: null,
+                        }
+                      : prev,
+                  )
+                }}
+              />
+              <datalist id="workspace-agent-model-options">
+                {launcherModelOptions.map(model => (
+                  <option value={model} key={model} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="workspace-agent-launcher__field-row">
+              <label htmlFor="workspace-agent-prompt">Prompt</label>
+              <textarea
+                id="workspace-agent-prompt"
+                data-testid="workspace-agent-launch-prompt"
+                placeholder="输入任务提示词..."
+                value={agentLauncher.prompt}
+                disabled={agentLauncher.isLaunching}
+                onChange={event => {
+                  const nextPrompt = event.target.value
+                  setAgentLauncher(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          prompt: nextPrompt,
+                          error: null,
+                        }
+                      : prev,
+                  )
+                }}
+              />
+            </div>
+
+            <div className="workspace-agent-launcher__field-row">
+              <label>Execution Directory</label>
+              <div className="workspace-agent-launcher__directory-mode">
+                <label>
+                  <input
+                    type="radio"
+                    name="workspace-agent-directory-mode"
+                    checked={agentLauncher.directoryMode === 'workspace'}
+                    disabled={agentLauncher.isLaunching}
+                    onChange={() => {
+                      setAgentLauncher(prev =>
+                        prev
+                          ? {
+                              ...prev,
+                              directoryMode: 'workspace',
+                              error: null,
+                            }
+                          : prev,
+                      )
+                    }}
+                  />
+                  <span>Workspace Root</span>
+                </label>
+
+                <label>
+                  <input
+                    type="radio"
+                    name="workspace-agent-directory-mode"
+                    checked={agentLauncher.directoryMode === 'custom'}
+                    disabled={agentLauncher.isLaunching}
+                    onChange={() => {
+                      setAgentLauncher(prev =>
+                        prev
+                          ? {
+                              ...prev,
+                              directoryMode: 'custom',
+                              customDirectory:
+                                prev.customDirectory.trim().length > 0
+                                  ? prev.customDirectory
+                                  : toSuggestedWorktreePath(workspacePath, prev.provider),
+                              error: null,
+                            }
+                          : prev,
+                      )
+                    }}
+                  />
+                  <span>Custom / Worktree</span>
+                </label>
+              </div>
+
+              {agentLauncher.directoryMode === 'custom' ? (
+                <>
+                  <input
+                    type="text"
+                    data-testid="workspace-agent-launch-custom-directory"
+                    value={agentLauncher.customDirectory}
+                    disabled={agentLauncher.isLaunching}
+                    placeholder="/absolute/path/or/relative/path"
+                    onChange={event => {
+                      const nextValue = event.target.value
+                      setAgentLauncher(prev =>
+                        prev
+                          ? {
+                              ...prev,
+                              customDirectory: nextValue,
+                              error: null,
+                            }
+                          : prev,
+                      )
+                    }}
+                  />
+
+                  <label className="workspace-agent-launcher__checkbox">
+                    <input
+                      type="checkbox"
+                      checked={agentLauncher.shouldCreateDirectory}
+                      disabled={agentLauncher.isLaunching}
+                      onChange={event => {
+                        setAgentLauncher(prev =>
+                          prev
+                            ? {
+                                ...prev,
+                                shouldCreateDirectory: event.target.checked,
+                              }
+                            : prev,
+                        )
+                      }}
+                    />
+                    <span>Auto create directory if missing</span>
+                  </label>
+                </>
+              ) : (
+                <p className="workspace-agent-launcher__meta">{workspacePath}</p>
+              )}
+            </div>
 
             {agentLauncher.error ? (
               <p className="workspace-agent-launcher__error">{agentLauncher.error}</p>
@@ -511,7 +1059,7 @@ function WorkspaceCanvasInner({
                 data-testid="workspace-agent-launch-submit"
                 disabled={agentLauncher.isLaunching}
                 onClick={() => {
-                  void launchDefaultAgentNode()
+                  void launchAgentNode()
                 }}
               >
                 {agentLauncher.isLaunching ? 'Launching...' : 'Run'}

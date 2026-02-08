@@ -59,6 +59,42 @@ describe('workspace persistence', () => {
               title: 'terminal-1',
               width: 460,
               height: 300,
+              kind: 'terminal',
+              status: null,
+              startedAt: null,
+              endedAt: null,
+              exitCode: null,
+              lastError: null,
+              agent: null,
+            },
+          },
+          {
+            id: 'node-agent',
+            type: 'terminalNode',
+            position: { x: 640, y: 120 },
+            data: {
+              sessionId: 'session-agent-1',
+              title: 'codex · gpt-5.2-codex',
+              width: 500,
+              height: 320,
+              kind: 'agent',
+              status: 'running',
+              startedAt: '2026-02-08T16:10:00.000Z',
+              endedAt: null,
+              exitCode: null,
+              lastError: null,
+              agent: {
+                provider: 'codex',
+                prompt: 'Implement retry for failed request',
+                model: 'gpt-5.2-codex',
+                effectiveModel: 'gpt-5.2-codex',
+                launchMode: 'new',
+                resumeSessionId: '019c3e32-52ff-7b00-94ac-e6c5a56b4aa4',
+                executionDirectory: '/tmp/cove',
+                directoryMode: 'workspace',
+                customDirectory: null,
+                shouldCreateDirectory: false,
+              },
             },
           },
         ],
@@ -88,7 +124,10 @@ describe('workspace persistence', () => {
     expect(restored).not.toBeNull()
     expect(restored?.activeWorkspaceId).toBe('workspace-1')
     expect(restored?.workspaces).toHaveLength(1)
+    expect(restored?.workspaces[0].nodes).toHaveLength(2)
     expect(restored?.workspaces[0].nodes[0].title).toBe('terminal-1')
+    expect(restored?.workspaces[0].nodes[1].kind).toBe('agent')
+    expect(restored?.workspaces[0].nodes[1].agent?.provider).toBe('codex')
     expect(restored?.settings.defaultProvider).toBe('claude-code')
     expect(restored?.settings.customModelEnabledByProvider.codex).toBe(true)
     expect(restored?.settings.customModelByProvider.codex).toBe('gpt-5.2-codex')

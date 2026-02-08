@@ -13,6 +13,13 @@ const baseNode = {
     title: 'terminal-1',
     width: 400,
     height: 280,
+    kind: 'terminal',
+    status: null,
+    startedAt: null,
+    endedAt: null,
+    exitCode: null,
+    lastError: null,
+    agent: null,
   } satisfies TerminalNodeData,
 }
 
