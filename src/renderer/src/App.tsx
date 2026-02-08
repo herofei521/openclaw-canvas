@@ -1,10 +1,70 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { WorkspaceCanvas } from './features/workspace/components/WorkspaceCanvas'
 import type { WorkspaceState } from './features/workspace/types'
+import {
+  readPersistedState,
+  toPersistedState,
+  writePersistedState,
+} from './features/workspace/utils/persistence'
+import { toRuntimeNodes } from './features/workspace/utils/nodeTransform'
 
 function App(): JSX.Element {
   const [workspaces, setWorkspaces] = useState<WorkspaceState[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const persisted = readPersistedState()
+    if (!persisted || persisted.workspaces.length === 0) {
+      return
+    }
+
+    const restore = async (): Promise<void> => {
+      const restoredWorkspaces = await Promise.all(
+        persisted.workspaces.map(async workspace => {
+          const runtimeNodes = toRuntimeNodes(workspace)
+          const spawnedSessions = await Promise.all(
+            runtimeNodes.map(() =>
+              window.coveApi.pty.spawn({
+                cwd: workspace.path,
+                cols: 80,
+                rows: 24,
+              }),
+            ),
+          )
+
+          const hydratedNodes = runtimeNodes.map((node, index) => ({
+            ...node,
+            data: {
+              ...node.data,
+              sessionId: spawnedSessions[index].sessionId,
+            },
+          }))
+
+          return {
+            id: workspace.id,
+            name: workspace.name,
+            path: workspace.path,
+            nodes: hydratedNodes,
+          }
+        }),
+      )
+
+      setWorkspaces(restoredWorkspaces)
+
+      const hasActive = restoredWorkspaces.some(
+        workspace => workspace.id === persisted.activeWorkspaceId,
+      )
+      setActiveWorkspaceId(
+        hasActive ? persisted.activeWorkspaceId : (restoredWorkspaces[0]?.id ?? null),
+      )
+    }
+
+    void restore()
+  }, [])
+
+  useEffect(() => {
+    writePersistedState(toPersistedState(workspaces, activeWorkspaceId))
+  }, [activeWorkspaceId, workspaces])
 
   const activeWorkspace = useMemo(
     () => workspaces.find(workspace => workspace.id === activeWorkspaceId) ?? null,
