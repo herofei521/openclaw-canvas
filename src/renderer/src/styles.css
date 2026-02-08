@@ -302,6 +302,17 @@ body {
   height: 14px;
 }
 
+.settings-provider-card__credentials {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-provider-card__credentials label {
+  font-size: 12px;
+  color: #b8caef;
+}
+
 .settings-provider-card__meta {
   display: flex;
   flex-direction: column;

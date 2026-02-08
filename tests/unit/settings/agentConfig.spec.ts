@@ -11,7 +11,7 @@ describe('agent settings normalization', () => {
     expect(normalizeAgentSettings('invalid')).toEqual(DEFAULT_AGENT_SETTINGS)
   })
 
-  it('keeps valid provider and custom model fields', () => {
+  it('keeps valid provider, custom model, and claude connection fields', () => {
     const result = normalizeAgentSettings({
       defaultProvider: 'codex',
       customModelEnabledByProvider: {
@@ -22,6 +22,10 @@ describe('agent settings normalization', () => {
         'claude-code': 'claude-opus-4-1',
         codex: 'gpt-5.2-codex',
       },
+      claudeConnection: {
+        baseUrl: 'https://proxy.example.com',
+        apiKey: 'abc-key',
+      },
     })
 
     expect(result.defaultProvider).toBe('codex')
@@ -29,6 +33,8 @@ describe('agent settings normalization', () => {
     expect(result.customModelEnabledByProvider.codex).toBe(false)
     expect(result.customModelByProvider['claude-code']).toBe('claude-opus-4-1')
     expect(result.customModelByProvider.codex).toBe('gpt-5.2-codex')
+    expect(result.claudeConnection.baseUrl).toBe('https://proxy.example.com')
+    expect(result.claudeConnection.apiKey).toBe('abc-key')
     expect(resolveAgentModel(result, 'claude-code')).toBe('claude-opus-4-1')
     expect(resolveAgentModel(result, 'codex')).toBeNull()
   })
@@ -65,5 +71,16 @@ describe('agent settings normalization', () => {
     expect(result.customModelEnabledByProvider.codex).toBe(true)
     expect(result.customModelByProvider['claude-code']).toBe('claude-sonnet-4-5')
     expect(result.customModelByProvider.codex).toBe('gpt-5.2-codex')
+  })
+
+  it('migrates legacy claudeApiBaseUrl and claudeApiKey fields', () => {
+    const result = normalizeAgentSettings({
+      defaultProvider: 'claude-code',
+      claudeApiBaseUrl: ' https://legacy-proxy.example.com ',
+      claudeApiKey: ' legacy-key ',
+    })
+
+    expect(result.claudeConnection.baseUrl).toBe('https://legacy-proxy.example.com')
+    expect(result.claudeConnection.apiKey).toBe('legacy-key')
   })
 })

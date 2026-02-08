@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type {
+  AgentConnectionConfigInput,
   AgentModelOption,
   AgentProviderId,
   ListAgentModelsResult,
@@ -16,11 +17,20 @@ function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/, '')
 }
 
+function normalizeOptionalValue(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const normalized = value.trim()
+  return normalized.length > 0 ? normalized : null
+}
+
 function resolveEnvValue(keys: string[]): string | null {
   for (const key of keys) {
-    const value = process.env[key]
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value.trim()
+    const value = normalizeOptionalValue(process.env[key])
+    if (value) {
+      return value
     }
   }
 
@@ -253,17 +263,20 @@ async function readClaudeApiKeyFromConfig(): Promise<string | null> {
       return null
     }
 
-    if (typeof parsed.primaryApiKey === 'string' && parsed.primaryApiKey.trim().length > 0) {
-      return parsed.primaryApiKey.trim()
-    }
-
-    return null
+    return normalizeOptionalValue(parsed.primaryApiKey)
   } catch {
     return null
   }
 }
 
-async function resolveClaudeApiKey(): Promise<string | null> {
+async function resolveClaudeApiKey(
+  connection?: AgentConnectionConfigInput,
+): Promise<string | null> {
+  const customApiKey = normalizeOptionalValue(connection?.apiKey)
+  if (customApiKey) {
+    return customApiKey
+  }
+
   const envKey = resolveEnvValue([
     'ANTHROPIC_API_KEY',
     'CLAUDE_API_KEY',
@@ -278,28 +291,49 @@ async function resolveClaudeApiKey(): Promise<string | null> {
   return await readClaudeApiKeyFromConfig()
 }
 
-function resolveClaudeModelsEndpoint(): string {
-  const baseUrl = resolveEnvValue([
+function toClaudeModelsEndpoint(baseUrl: string): string {
+  const normalized = normalizeBaseUrl(baseUrl)
+
+  if (normalized.endsWith('/v1/models')) {
+    return normalized
+  }
+
+  if (normalized.endsWith('/v1')) {
+    return `${normalized}/models`
+  }
+
+  return `${normalized}/v1/models`
+}
+
+function resolveClaudeModelsEndpoint(connection?: AgentConnectionConfigInput): string {
+  const customBaseUrl = normalizeOptionalValue(connection?.baseUrl)
+  if (customBaseUrl) {
+    return toClaudeModelsEndpoint(customBaseUrl)
+  }
+
+  const envBaseUrl = resolveEnvValue([
     'ANTHROPIC_BASE_URL',
     'CLAUDE_BASE_URL',
     'CLAUDE_CODE_BASE_URL',
     'ANTHROPIC_API_BASE_URL',
   ])
 
-  if (!baseUrl) {
+  if (!envBaseUrl) {
     return CLAUDE_MODELS_ENDPOINT
   }
 
-  return `${normalizeBaseUrl(baseUrl)}/v1/models`
+  return toClaudeModelsEndpoint(envBaseUrl)
 }
 
-async function listClaudeModelsFromApi(): Promise<AgentModelOption[]> {
-  const apiKey = await resolveClaudeApiKey()
-  const endpoint = resolveClaudeModelsEndpoint()
+async function listClaudeModelsFromApi(
+  connection?: AgentConnectionConfigInput,
+): Promise<AgentModelOption[]> {
+  const apiKey = await resolveClaudeApiKey(connection)
+  const endpoint = resolveClaudeModelsEndpoint(connection)
 
   if (!apiKey) {
     throw new Error(
-      'Claude API key not found (ANTHROPIC_API_KEY / CLAUDE_API_KEY / CLAUDE_CODE_API_KEY / CLAUDE_APIKEY / ~/.claude/config.json)',
+      'Claude API key not found (Settings > Claude API Key or ANTHROPIC_API_KEY / CLAUDE_API_KEY / CLAUDE_CODE_API_KEY / CLAUDE_APIKEY / ~/.claude/config.json)',
     )
   }
 
@@ -307,6 +341,7 @@ async function listClaudeModelsFromApi(): Promise<AgentModelOption[]> {
     method: 'GET',
     headers: {
       'x-api-key': apiKey,
+      authorization: `Bearer ${apiKey}`,
       'anthropic-version': CLAUDE_API_VERSION,
       'content-type': 'application/json',
     },
@@ -328,7 +363,10 @@ async function listClaudeModelsFromApi(): Promise<AgentModelOption[]> {
     .filter((item): item is AgentModelOption => item !== null)
 }
 
-export async function listAgentModels(provider: AgentProviderId): Promise<ListAgentModelsResult> {
+export async function listAgentModels(
+  provider: AgentProviderId,
+  connection?: AgentConnectionConfigInput,
+): Promise<ListAgentModelsResult> {
   const fetchedAt = new Date().toISOString()
 
   if (provider === 'codex') {
@@ -353,7 +391,7 @@ export async function listAgentModels(provider: AgentProviderId): Promise<ListAg
   }
 
   try {
-    const models = await listClaudeModelsFromApi()
+    const models = await listClaudeModelsFromApi(connection)
     return {
       provider,
       source: 'claude-api',

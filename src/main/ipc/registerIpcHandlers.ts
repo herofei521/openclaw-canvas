@@ -2,6 +2,7 @@ import { dialog, ipcMain, webContents } from 'electron'
 import { basename, resolve } from 'node:path'
 import { IPC_CHANNELS } from '../../shared/constants/ipc'
 import type {
+  AgentConnectionConfigInput,
   KillTerminalInput,
   ListAgentModelsInput,
   ResizeTerminalInput,
@@ -11,11 +12,48 @@ import type {
   WorkspaceDirectory,
   WriteTerminalInput,
 } from '../../shared/types/api'
-import { PtyManager } from '../infrastructure/pty/PtyManager'
 import { listAgentModels } from '../infrastructure/agent/AgentModelService'
+import { PtyManager } from '../infrastructure/pty/PtyManager'
 
 export interface IpcRegistrationDisposable {
   dispose: () => void
+}
+
+function normalizeConnectionInput(value: unknown): AgentConnectionConfigInput | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined
+  }
+
+  const record = value as Record<string, unknown>
+  const baseUrl = typeof record.baseUrl === 'string' ? record.baseUrl.trim() : ''
+  const apiKey = typeof record.apiKey === 'string' ? record.apiKey.trim() : ''
+
+  if (baseUrl.length === 0 && apiKey.length === 0) {
+    return undefined
+  }
+
+  return {
+    baseUrl: baseUrl.length > 0 ? baseUrl : undefined,
+    apiKey: apiKey.length > 0 ? apiKey : undefined,
+  }
+}
+
+function normalizeListModelsPayload(payload: unknown): ListAgentModelsInput {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid provider for agent:list-models')
+  }
+
+  const record = payload as Record<string, unknown>
+  const provider = record.provider
+
+  if (provider !== 'claude-code' && provider !== 'codex') {
+    throw new Error('Invalid provider for agent:list-models')
+  }
+
+  return {
+    provider,
+    connection: normalizeConnectionInput(record.connection),
+  }
 }
 
 export function registerIpcHandlers(): IpcRegistrationDisposable {
@@ -90,11 +128,8 @@ export function registerIpcHandlers(): IpcRegistrationDisposable {
   })
 
   ipcMain.handle(IPC_CHANNELS.agentListModels, async (_event, payload: ListAgentModelsInput) => {
-    if (!payload || (payload.provider !== 'claude-code' && payload.provider !== 'codex')) {
-      throw new Error('Invalid provider for agent:list-models')
-    }
-
-    return await listAgentModels(payload.provider)
+    const normalized = normalizeListModelsPayload(payload)
+    return await listAgentModels(normalized.provider, normalized.connection)
   })
 
   return {

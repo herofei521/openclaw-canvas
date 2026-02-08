@@ -65,7 +65,22 @@ describe('workspace persistence', () => {
       },
     ]
 
-    const persisted = toPersistedState(workspaces, 'workspace-1')
+    const persisted = toPersistedState(workspaces, 'workspace-1', {
+      defaultProvider: 'claude-code',
+      customModelEnabledByProvider: {
+        'claude-code': false,
+        codex: true,
+      },
+      customModelByProvider: {
+        'claude-code': '',
+        codex: 'gpt-5.2-codex',
+      },
+      claudeConnection: {
+        baseUrl: 'https://proxy.example.com',
+        apiKey: 'test-key',
+      },
+    })
+
     writePersistedState(persisted)
 
     const restored = readPersistedState()
@@ -75,8 +90,10 @@ describe('workspace persistence', () => {
     expect(restored?.workspaces).toHaveLength(1)
     expect(restored?.workspaces[0].nodes[0].title).toBe('terminal-1')
     expect(restored?.settings.defaultProvider).toBe('claude-code')
-    expect(restored?.settings.customModelEnabledByProvider.codex).toBe(false)
-    expect(restored?.settings.customModelByProvider.codex).toBe('')
+    expect(restored?.settings.customModelEnabledByProvider.codex).toBe(true)
+    expect(restored?.settings.customModelByProvider.codex).toBe('gpt-5.2-codex')
+    expect(restored?.settings.claudeConnection.baseUrl).toBe('https://proxy.example.com')
+    expect(restored?.settings.claudeConnection.apiKey).toBe('test-key')
   })
 
   it('falls back to default settings when persisted settings are missing', () => {
@@ -92,6 +109,8 @@ describe('workspace persistence', () => {
     expect(restored?.settings.defaultProvider).toBe('claude-code')
     expect(restored?.settings.customModelEnabledByProvider['claude-code']).toBe(false)
     expect(restored?.settings.customModelByProvider['claude-code']).toBe('')
+    expect(restored?.settings.claudeConnection.baseUrl).toBe('')
+    expect(restored?.settings.claudeConnection.apiKey).toBe('')
   })
 
   it('returns null when stored json is invalid', () => {

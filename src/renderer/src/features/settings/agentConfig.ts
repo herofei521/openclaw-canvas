@@ -15,10 +15,16 @@ export type AgentCustomModelByProvider = {
   [provider in AgentProvider]: string
 }
 
+export interface ClaudeConnectionSettings {
+  baseUrl: string
+  apiKey: string
+}
+
 export interface AgentSettings {
   defaultProvider: AgentProvider
   customModelEnabledByProvider: AgentCustomModelEnabledByProvider
   customModelByProvider: AgentCustomModelByProvider
+  claudeConnection: ClaudeConnectionSettings
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
@@ -31,6 +37,10 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
     'claude-code': '',
     codex: '',
   },
+  claudeConnection: {
+    baseUrl: '',
+    apiKey: '',
+  },
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -41,12 +51,12 @@ function isValidProvider(value: unknown): value is AgentProvider {
   return typeof value === 'string' && AGENT_PROVIDERS.includes(value as AgentProvider)
 }
 
-function normalizeModelValue(model: unknown): string {
-  if (typeof model !== 'string') {
+function normalizeTextValue(value: unknown): string {
+  if (typeof value !== 'string') {
     return ''
   }
 
-  return model.trim()
+  return value.trim()
 }
 
 function normalizeModelEnabled(value: unknown): boolean | null {
@@ -86,7 +96,7 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
   const customModelEnabledByProvider = AGENT_PROVIDERS.reduce<AgentCustomModelEnabledByProvider>(
     (acc, provider) => {
       const normalizedEnabled = normalizeModelEnabled(enabledInput[provider])
-      const legacyModel = normalizeModelValue(legacyModelInput[provider])
+      const legacyModel = normalizeTextValue(legacyModelInput[provider])
 
       acc[provider] = normalizedEnabled === null ? legacyModel.length > 0 : normalizedEnabled
 
@@ -98,15 +108,26 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
   const customModelByProvider = AGENT_PROVIDERS.reduce<AgentCustomModelByProvider>(
     (acc, provider) => {
       const current = customModelInput[provider] ?? legacyModelInput[provider]
-      acc[provider] = normalizeModelValue(current)
+      acc[provider] = normalizeTextValue(current)
       return acc
     },
     { ...DEFAULT_AGENT_SETTINGS.customModelByProvider },
   )
 
+  const claudeConnectionInput = isRecord(value.claudeConnection) ? value.claudeConnection : {}
+
+  const legacyClaudeBaseUrl = normalizeTextValue(value.claudeApiBaseUrl)
+  const legacyClaudeApiKey = normalizeTextValue(value.claudeApiKey)
+
+  const claudeConnection: ClaudeConnectionSettings = {
+    baseUrl: normalizeTextValue(claudeConnectionInput.baseUrl ?? legacyClaudeBaseUrl),
+    apiKey: normalizeTextValue(claudeConnectionInput.apiKey ?? legacyClaudeApiKey),
+  }
+
   return {
     defaultProvider,
     customModelEnabledByProvider,
     customModelByProvider,
+    claudeConnection,
   }
 }

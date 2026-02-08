@@ -27,6 +27,35 @@ afterEach(() => {
 })
 
 describe('AgentModelService claude model list', () => {
+  it('uses explicit connection config from settings before env values', async () => {
+    process.env.ANTHROPIC_BASE_URL = 'https://env.example.com'
+    process.env.ANTHROPIC_API_KEY = 'env-key'
+
+    const fetchMock = createMockFetch()
+    globalThis.fetch = fetchMock
+
+    const result = await listAgentModels('claude-code', {
+      baseUrl: 'https://settings.example.com',
+      apiKey: 'settings-key',
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://settings.example.com/v1/models',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'x-api-key': 'settings-key',
+          authorization: 'Bearer settings-key',
+          'anthropic-version': '2023-06-01',
+        }),
+      }),
+    )
+
+    expect(result.error).toBeNull()
+    expect(result.models[0]?.id).toBe('claude-sonnet-4-5')
+  })
+
   it('uses ANTHROPIC_BASE_URL and ANTHROPIC_API_KEY when provided', async () => {
     process.env.ANTHROPIC_BASE_URL = 'https://proxy.example.com/'
     process.env.ANTHROPIC_API_KEY = 'proxy-key'
@@ -38,26 +67,22 @@ describe('AgentModelService claude model list', () => {
 
     const result = await listAgentModels('claude-code')
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
       'https://proxy.example.com/v1/models',
       expect.objectContaining({
-        method: 'GET',
         headers: expect.objectContaining({
           'x-api-key': 'proxy-key',
-          'anthropic-version': '2023-06-01',
+          authorization: 'Bearer proxy-key',
         }),
       }),
     )
-
     expect(result.error).toBeNull()
-    expect(result.models[0]?.id).toBe('claude-sonnet-4-5')
   })
 
   it('falls back to CLAUDE_CODE_BASE_URL and CLAUDE_CODE_API_KEY', async () => {
     delete process.env.ANTHROPIC_BASE_URL
     delete process.env.ANTHROPIC_API_KEY
-    process.env.CLAUDE_CODE_BASE_URL = 'https://gateway.internal'
+    process.env.CLAUDE_CODE_BASE_URL = 'https://gateway.internal/v1'
     process.env.CLAUDE_CODE_API_KEY = 'gateway-key'
 
     const fetchMock = createMockFetch()
@@ -70,6 +95,7 @@ describe('AgentModelService claude model list', () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           'x-api-key': 'gateway-key',
+          authorization: 'Bearer gateway-key',
         }),
       }),
     )
@@ -93,6 +119,7 @@ describe('AgentModelService claude model list', () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           'x-api-key': 'plain-key',
+          authorization: 'Bearer plain-key',
         }),
       }),
     )

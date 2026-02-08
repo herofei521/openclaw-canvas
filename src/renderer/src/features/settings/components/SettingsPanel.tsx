@@ -56,6 +56,26 @@ export function SettingsPanel({
     })
   }
 
+  const updateClaudeBaseUrl = (baseUrl: string): void => {
+    onChange({
+      ...settings,
+      claudeConnection: {
+        ...settings.claudeConnection,
+        baseUrl,
+      },
+    })
+  }
+
+  const updateClaudeApiKey = (apiKey: string): void => {
+    onChange({
+      ...settings,
+      claudeConnection: {
+        ...settings.claudeConnection,
+        apiKey,
+      },
+    })
+  }
+
   const selectedModel =
     resolveAgentModel(settings, settings.defaultProvider) ?? 'Default (Follow CLI)'
 
@@ -159,6 +179,35 @@ export function SettingsPanel({
                     </option>
                   ))}
                 </datalist>
+
+                {provider === 'claude-code' ? (
+                  <div className="settings-provider-card__credentials">
+                    <label htmlFor="settings-claude-base-url">Claude Base URL (Optional)</label>
+                    <input
+                      id="settings-claude-base-url"
+                      type="text"
+                      data-testid="settings-claude-base-url"
+                      value={settings.claudeConnection.baseUrl}
+                      placeholder="Default: https://api.anthropic.com"
+                      onChange={event => {
+                        updateClaudeBaseUrl(event.target.value)
+                      }}
+                    />
+
+                    <label htmlFor="settings-claude-api-key">Claude API Key (Optional)</label>
+                    <input
+                      id="settings-claude-api-key"
+                      type="password"
+                      data-testid="settings-claude-api-key"
+                      value={settings.claudeConnection.apiKey}
+                      placeholder="Empty = use env / Claude config"
+                      autoComplete="off"
+                      onChange={event => {
+                        updateClaudeApiKey(event.target.value)
+                      }}
+                    />
+                  </div>
+                ) : null}
 
                 <div className="settings-provider-card__meta">
                   <span>

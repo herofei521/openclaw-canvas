@@ -144,43 +144,56 @@ function App(): JSX.Element {
     writePersistedState(toPersistedState(workspaces, activeWorkspaceId, agentSettings))
   }, [activeWorkspaceId, agentSettings, isHydrated, workspaces])
 
-  const refreshProviderModels = useCallback(async (provider: AgentProvider): Promise<void> => {
-    setProviderModelCatalog(prev => ({
-      ...prev,
-      [provider]: {
-        ...prev[provider],
-        isLoading: true,
-        error: null,
-      },
-    }))
-
-    try {
-      const result = await window.coveApi.agent.listModels({ provider })
-      const nextModels = [...new Set(result.models.map(model => model.id))]
-
+  const refreshProviderModels = useCallback(
+    async (provider: AgentProvider): Promise<void> => {
       setProviderModelCatalog(prev => ({
         ...prev,
         [provider]: {
           ...prev[provider],
-          models: nextModels,
-          source: result.source,
-          fetchedAt: result.fetchedAt,
-          error: result.error,
-          isLoading: false,
+          isLoading: true,
+          error: null,
         },
       }))
-    } catch (error) {
-      setProviderModelCatalog(prev => ({
-        ...prev,
-        [provider]: {
-          ...prev[provider],
-          isLoading: false,
-          fetchedAt: new Date().toISOString(),
-          error: toErrorMessage(error),
-        },
-      }))
-    }
-  }, [])
+
+      try {
+        const result =
+          provider === 'claude-code'
+            ? await window.coveApi.agent.listModels({
+                provider,
+                connection: {
+                  baseUrl: agentSettings.claudeConnection.baseUrl,
+                  apiKey: agentSettings.claudeConnection.apiKey,
+                },
+              })
+            : await window.coveApi.agent.listModels({ provider })
+
+        const nextModels = [...new Set(result.models.map(model => model.id))]
+
+        setProviderModelCatalog(prev => ({
+          ...prev,
+          [provider]: {
+            ...prev[provider],
+            models: nextModels,
+            source: result.source,
+            fetchedAt: result.fetchedAt,
+            error: result.error,
+            isLoading: false,
+          },
+        }))
+      } catch (error) {
+        setProviderModelCatalog(prev => ({
+          ...prev,
+          [provider]: {
+            ...prev[provider],
+            isLoading: false,
+            fetchedAt: new Date().toISOString(),
+            error: toErrorMessage(error),
+          },
+        }))
+      }
+    },
+    [agentSettings.claudeConnection.apiKey, agentSettings.claudeConnection.baseUrl],
+  )
 
   useEffect(() => {
     if (!isSettingsOpen) {
