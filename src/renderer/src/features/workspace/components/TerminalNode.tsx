@@ -583,10 +583,7 @@ export function TerminalNode({
       <div
         ref={containerRef}
         className="terminal-node__terminal nodrag"
-        onMouseEnter={() => {
-          onInteractionStart?.()
-        }}
-        onMouseDownCapture={() => {
+        onClickCapture={() => {
           onInteractionStart?.()
         }}
       />

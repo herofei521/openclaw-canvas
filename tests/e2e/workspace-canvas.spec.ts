@@ -403,7 +403,7 @@ test.describe('Workspace Canvas Interactions', () => {
     }
   })
 
-  test('normalizes canvas zoom when terminal interaction starts', async () => {
+  test('normalizes canvas zoom when terminal is clicked', async () => {
     const { electronApp, window } = await launchApp()
 
     try {
@@ -447,7 +447,7 @@ test.describe('Workspace Canvas Interactions', () => {
 
       const terminal = window.locator('.terminal-node').first()
       await expect(terminal).toBeVisible()
-      await terminal.locator('.xterm').hover()
+      await terminal.locator('.xterm').click()
 
       await expect
         .poll(async () => {
