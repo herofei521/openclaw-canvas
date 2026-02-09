@@ -40,7 +40,7 @@ describe('locateAgentResumeSessionId', () => {
     osMock.homedir.mockReturnValue('/Users/tester')
   })
 
-  it('parses claude resume session id from jsonl payload instead of filename', async () => {
+  it('uses latest claude jsonl filename as resume session id', async () => {
     const cwd = '/Users/tester/Development/cove'
     const startedAtMs = 1_707_000_000_000
     const projectDir = toClaudeProjectDir(cwd)
@@ -59,14 +59,6 @@ describe('locateAgentResumeSessionId', () => {
       return { mtimeMs: startedAtMs + 50 }
     })
 
-    fsPromisesMock.readFile.mockImplementation(async (filePath: string) => {
-      if (filePath === latestFile) {
-        return '{"type":"bootstrap","sessionId":"c954dfa5-20a2-45eb-bfe6-1802f9b41683"}\n'
-      }
-
-      return '{"type":"bootstrap","sessionId":"4c839b40-c95d-40b6-87ff-6800f64febb8"}\n'
-    })
-
     const sessionId = await locateAgentResumeSessionId({
       provider: 'claude-code',
       cwd,
@@ -74,10 +66,10 @@ describe('locateAgentResumeSessionId', () => {
       timeoutMs: 10,
     })
 
-    expect(sessionId).toBe('c954dfa5-20a2-45eb-bfe6-1802f9b41683')
+    expect(sessionId).toBe('agent-a5170af')
   })
 
-  it('falls back to uuid filename for legacy claude session logs', async () => {
+  it('supports uuid-style claude jsonl filenames', async () => {
     const cwd = '/Users/tester/Development/cove'
     const startedAtMs = 1_707_000_000_000
     const projectDir = toClaudeProjectDir(cwd)
@@ -94,8 +86,6 @@ describe('locateAgentResumeSessionId', () => {
 
       return { mtimeMs: startedAtMs - 20_000 }
     })
-
-    fsPromisesMock.readFile.mockResolvedValue('{"type":"message"}\n')
 
     const detected = await locateAgentResumeSessionId({
       provider: 'claude-code',
