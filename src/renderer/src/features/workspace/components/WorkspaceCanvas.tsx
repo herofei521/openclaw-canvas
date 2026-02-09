@@ -160,7 +160,9 @@ function WorkspaceCanvasInner({
   )
   const isNodeDraggingRef = useRef(false)
   const pendingScrollbackByNodeRef = useRef<Map<string, string>>(new Map())
-  const normalizeViewportForTerminalInteractionRef = useRef<() => void>(() => undefined)
+  const normalizeViewportForTerminalInteractionRef = useRef<(nodeId: string) => void>(
+    () => undefined,
+  )
 
   useEffect(() => {
     nodesRef.current = nodes
@@ -845,27 +847,29 @@ function WorkspaceCanvasInner({
     )
   }, [focusNodeId, focusSequence, nodes, reactFlow])
 
-  normalizeViewportForTerminalInteractionRef.current = () => {
+  normalizeViewportForTerminalInteractionRef.current = (nodeId: string) => {
+    if (!agentSettings.normalizeZoomOnTerminalClick) {
+      return
+    }
+
     const viewport = reactFlow.getViewport()
     if (Math.abs(viewport.zoom - 1) < 0.01) {
       return
     }
 
-    const canvas = canvasRef.current
-    if (!canvas) {
+    const targetNode = nodesRef.current.find(node => node.id === nodeId)
+    if (!targetNode || targetNode.data.kind === 'task') {
       return
     }
 
-    const rect = canvas.getBoundingClientRect()
-    const center = reactFlow.screenToFlowPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    })
-
-    reactFlow.setCenter(center.x, center.y, {
-      duration: 120,
-      zoom: 1,
-    })
+    reactFlow.setCenter(
+      targetNode.position.x + targetNode.data.width / 2,
+      targetNode.position.y + targetNode.data.height / 2,
+      {
+        duration: 120,
+        zoom: 1,
+      },
+    )
   }
 
   const nodeTypes = useMemo(
@@ -886,7 +890,7 @@ function WorkspaceCanvasInner({
           }}
           onResize={size => resizeNodeRef.current(id, size)}
           onScrollbackChange={scrollback => updateNodeScrollbackRef.current(id, scrollback)}
-          onInteractionStart={() => normalizeViewportForTerminalInteractionRef.current()}
+          onInteractionStart={() => normalizeViewportForTerminalInteractionRef.current(id)}
           onStop={
             data.kind === 'agent'
               ? () => {

@@ -148,6 +148,7 @@ describe('workspace persistence', () => {
       },
       taskTitleProvider: 'codex',
       taskTitleModel: 'gpt-5.2-codex',
+      normalizeZoomOnTerminalClick: false,
     })
 
     writePersistedState(persisted)
@@ -173,6 +174,7 @@ describe('workspace persistence', () => {
     expect(restored?.settings.customModelOptionsByProvider.codex).toEqual(['gpt-5.2-codex'])
     expect(restored?.settings.taskTitleProvider).toBe('codex')
     expect(restored?.settings.taskTitleModel).toBe('gpt-5.2-codex')
+    expect(restored?.settings.normalizeZoomOnTerminalClick).toBe(false)
   })
 
   it('truncates oversized terminal scrollback', () => {
@@ -240,6 +242,7 @@ describe('workspace persistence', () => {
     expect(restored?.settings.customModelOptionsByProvider.codex).toEqual([])
     expect(restored?.settings.taskTitleProvider).toBe('default')
     expect(restored?.settings.taskTitleModel).toBe('')
+    expect(restored?.settings.normalizeZoomOnTerminalClick).toBe(true)
   })
 
   it('returns null when stored json is invalid', () => {

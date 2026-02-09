@@ -38,6 +38,11 @@ test.describe('Settings', () => {
       const taskTitleModel = window.locator('[data-testid="settings-task-title-model"]')
       await taskTitleModel.fill('gpt-5.2-codex')
 
+      const normalizeZoomToggle = window.locator(
+        '[data-testid="settings-normalize-zoom-on-terminal-click"]',
+      )
+      await normalizeZoomToggle.uncheck()
+
       const customModelEnabled = window.locator(
         '[data-testid="settings-custom-model-enabled-codex"]',
       )
@@ -81,6 +86,7 @@ test.describe('Settings', () => {
             }
             taskTitleProvider?: string
             taskTitleModel?: string
+            normalizeZoomOnTerminalClick?: boolean
           }
         }
 
@@ -93,6 +99,7 @@ test.describe('Settings', () => {
       expect(persistedSettings?.customModelOptionsByProvider?.codex).toContain('gpt-5.2-codex')
       expect(persistedSettings?.taskTitleProvider).toBe('codex')
       expect(persistedSettings?.taskTitleModel).toBe('gpt-5.2-codex')
+      expect(persistedSettings?.normalizeZoomOnTerminalClick).toBe(false)
     } finally {
       await electronApp.close()
     }

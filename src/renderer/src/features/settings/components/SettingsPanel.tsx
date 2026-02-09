@@ -64,6 +64,13 @@ export function SettingsPanel({
     })
   }
 
+  const updateNormalizeZoomOnTerminalClick = (enabled: boolean): void => {
+    onChange({
+      ...settings,
+      normalizeZoomOnTerminalClick: enabled,
+    })
+  }
+
   const updateProviderCustomModelEnabled = (provider: AgentProvider, enabled: boolean): void => {
     onChange({
       ...settings,
@@ -198,6 +205,22 @@ export function SettingsPanel({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="settings-panel__section">
+          <h3>Canvas Interaction</h3>
+          <label className="settings-provider-card__toggle">
+            <input
+              id="settings-normalize-zoom-on-terminal-click"
+              data-testid="settings-normalize-zoom-on-terminal-click"
+              type="checkbox"
+              checked={settings.normalizeZoomOnTerminalClick}
+              onChange={event => {
+                updateNormalizeZoomOnTerminalClick(event.target.checked)
+              }}
+            />
+            <span>Click terminal auto-zooms canvas to 100%</span>
+          </label>
         </div>
 
         <div className="settings-panel__section">

@@ -454,6 +454,21 @@ test.describe('Workspace Canvas Interactions', () => {
           return await readZoom()
         })
         .toBeCloseTo(1, 2)
+
+      const canvasBox = await window.locator('.workspace-canvas .react-flow').boundingBox()
+      const terminalBox = await terminal.boundingBox()
+
+      if (!canvasBox || !terminalBox) {
+        throw new Error('failed to measure canvas or terminal bounds')
+      }
+
+      const canvasCenterX = canvasBox.x + canvasBox.width / 2
+      const canvasCenterY = canvasBox.y + canvasBox.height / 2
+      const terminalCenterX = terminalBox.x + terminalBox.width / 2
+      const terminalCenterY = terminalBox.y + terminalBox.height / 2
+
+      expect(Math.abs(canvasCenterX - terminalCenterX)).toBeLessThan(120)
+      expect(Math.abs(canvasCenterY - terminalCenterY)).toBeLessThan(120)
     } finally {
       await electronApp.close()
     }

@@ -11,6 +11,7 @@ describe('agent settings normalization', () => {
   it('returns defaults for invalid input', () => {
     expect(normalizeAgentSettings(null)).toEqual(DEFAULT_AGENT_SETTINGS)
     expect(normalizeAgentSettings('invalid')).toEqual(DEFAULT_AGENT_SETTINGS)
+    expect(DEFAULT_AGENT_SETTINGS.normalizeZoomOnTerminalClick).toBe(true)
   })
 
   it('keeps valid provider, custom model, and model option fields', () => {
@@ -30,6 +31,7 @@ describe('agent settings normalization', () => {
       },
       taskTitleProvider: 'claude-code',
       taskTitleModel: 'claude-opus-4-6',
+      normalizeZoomOnTerminalClick: false,
     })
 
     expect(result.defaultProvider).toBe('codex')
@@ -44,6 +46,7 @@ describe('agent settings normalization', () => {
     expect(result.customModelOptionsByProvider.codex).toEqual(['gpt-5.2-codex'])
     expect(result.taskTitleProvider).toBe('claude-code')
     expect(result.taskTitleModel).toBe('claude-opus-4-6')
+    expect(result.normalizeZoomOnTerminalClick).toBe(false)
     expect(resolveTaskTitleProvider(result)).toBe('claude-code')
     expect(resolveTaskTitleModel(result)).toBe('claude-opus-4-6')
     expect(resolveAgentModel(result, 'claude-code')).toBe('claude-opus-4-6')
@@ -75,6 +78,7 @@ describe('agent settings normalization', () => {
     expect(result.customModelOptionsByProvider.codex).toEqual(['gpt-5.2-codex'])
     expect(result.taskTitleProvider).toBe('default')
     expect(result.taskTitleModel).toBe('')
+    expect(result.normalizeZoomOnTerminalClick).toBe(true)
     expect(resolveAgentModel(result, 'claude-code')).toBeNull()
     expect(resolveAgentModel(result, 'codex')).toBe('gpt-5.2-codex')
     expect(resolveTaskTitleProvider(result)).toBe('claude-code')

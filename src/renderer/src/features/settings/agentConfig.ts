@@ -28,6 +28,7 @@ export interface AgentSettings {
   customModelOptionsByProvider: AgentCustomModelOptionsByProvider
   taskTitleProvider: TaskTitleProvider
   taskTitleModel: string
+  normalizeZoomOnTerminalClick: boolean
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
@@ -46,6 +47,7 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
   },
   taskTitleProvider: 'default',
   taskTitleModel: '',
+  normalizeZoomOnTerminalClick: true,
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,6 +71,14 @@ function normalizeTextValue(value: unknown): string {
 }
 
 function normalizeModelEnabled(value: unknown): boolean | null {
+  if (typeof value !== 'boolean') {
+    return null
+  }
+
+  return value
+}
+
+function normalizeBoolean(value: unknown): boolean | null {
   if (typeof value !== 'boolean') {
     return null
   }
@@ -181,6 +191,9 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
     : DEFAULT_AGENT_SETTINGS.taskTitleProvider
 
   const taskTitleModel = normalizeTextValue(value.taskTitleModel)
+  const normalizeZoomOnTerminalClick =
+    normalizeBoolean(value.normalizeZoomOnTerminalClick) ??
+    DEFAULT_AGENT_SETTINGS.normalizeZoomOnTerminalClick
 
   return {
     defaultProvider,
@@ -189,5 +202,6 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
     customModelOptionsByProvider,
     taskTitleProvider,
     taskTitleModel,
+    normalizeZoomOnTerminalClick,
   }
 }
