@@ -1001,12 +1001,11 @@ test.describe('Workspace Canvas Interactions', () => {
 
       const terminal = window.locator('.terminal-node').first()
       await expect(terminal).toBeVisible()
-      const terminalSurface = terminal.locator('.xterm')
-      await terminalSurface.click()
-      await window.keyboard.type(
-        `node -e "for (let i = 1; i <= 260; i += 1) console.log('COVE_SCROLL_' + i)"`,
-      )
-      await terminalSurface.press('Enter')
+      const terminalInput = terminal.locator('.xterm-helper-textarea')
+      await expect(terminalInput).toBeVisible()
+      await terminalInput.click()
+      await window.keyboard.type('for i in $(seq 1 260); do echo COVE_SCROLL_$i; done')
+      await terminalInput.press('Enter')
       await expect(terminal).toContainText('COVE_SCROLL_260')
 
       const viewport = terminal.locator('.xterm-viewport')
@@ -1117,6 +1116,130 @@ test.describe('Workspace Canvas Interactions', () => {
     }
   })
 
+  test('opens pane menu on blank right-click even when node is selected', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await clearAndSeedWorkspace(window, [
+        {
+          id: 'space-pane-menu-node',
+          title: 'terminal-space-pane-menu',
+          position: { x: 220, y: 180 },
+          width: 460,
+          height: 300,
+        },
+      ])
+
+      const terminalNode = window.locator('.terminal-node').first()
+      await expect(terminalNode).toBeVisible()
+      await terminalNode.click()
+
+      const pane = window.locator('.workspace-canvas .react-flow__pane')
+      await pane.click({
+        button: 'right',
+        position: { x: 80, y: 80 },
+      })
+
+      await expect(window.locator('[data-testid="workspace-context-new-terminal"]')).toBeVisible()
+      await expect(window.locator('[data-testid="workspace-selection-create-space"]')).toHaveCount(
+        0,
+      )
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('removes empty selected-created space when all members are unassigned', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await clearAndSeedWorkspace(window, [
+        {
+          id: 'space-cleanup-node',
+          title: 'terminal-space-cleanup',
+          position: { x: 220, y: 180 },
+          width: 460,
+          height: 300,
+        },
+      ])
+
+      const terminalNode = window.locator('.terminal-node').first()
+      await expect(terminalNode).toBeVisible()
+
+      await terminalNode.click()
+      await terminalNode.click({ button: 'right' })
+      await window.locator('[data-testid="workspace-selection-create-space"]').click()
+
+      await expect(window.locator('.workspace-sidebar__space-label')).toContainText('Space')
+
+      await terminalNode.click({ button: 'right' })
+      await window.locator('[data-testid="workspace-selection-remove-space"]').click()
+
+      await expect(window.locator('.workspace-sidebar__space-label')).toHaveText('Space: All')
+      await expect(window.locator('.workspace-space-switcher')).toHaveCount(0)
+
+      const spaceCount = await window.evaluate(key => {
+        const raw = window.localStorage.getItem(key)
+        if (!raw) {
+          return 0
+        }
+
+        const parsed = JSON.parse(raw) as {
+          workspaces?: Array<{
+            spaces?: unknown[]
+          }>
+        }
+
+        return parsed.workspaces?.[0]?.spaces?.length ?? 0
+      }, storageKey)
+
+      expect(spaceCount).toBe(0)
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('renames space by clicking the region label', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await clearAndSeedWorkspace(window, [
+        {
+          id: 'space-rename-node',
+          title: 'terminal-space-rename',
+          position: { x: 220, y: 180 },
+          width: 460,
+          height: 300,
+        },
+      ])
+
+      const terminalNode = window.locator('.terminal-node').first()
+      await expect(terminalNode).toBeVisible()
+
+      await terminalNode.click()
+      await terminalNode.click({ button: 'right' })
+      await window.locator('[data-testid="workspace-selection-create-space"]').click()
+
+      const labelButton = window.locator('.workspace-space-region__label').first()
+      await expect(labelButton).toBeVisible()
+      await labelButton.click()
+
+      const renameInput = window.locator('.workspace-space-region__label-input').first()
+      await expect(renameInput).toBeVisible()
+      await renameInput.fill('Infra Core')
+      await renameInput.press('Enter')
+
+      await expect(window.locator('.workspace-sidebar__space-label')).toHaveText(
+        'Space: Infra Core',
+      )
+      await expect(
+        window.locator('.workspace-space-switcher__item', { hasText: 'Infra Core' }),
+      ).toBeVisible()
+    } finally {
+      await electronApp.close()
+    }
+  })
+
   test('blocks moving selected agent to workspace with different directory', async () => {
     const { electronApp, window } = await launchApp()
 
@@ -1166,7 +1289,12 @@ test.describe('Workspace Canvas Interactions', () => {
               name: 'Worktree Scope',
               directoryPath: `${testWorkspacePath}/.cove/worktrees/demo`,
               nodeIds: [],
-              rect: null,
+              rect: {
+                x: 900,
+                y: 220,
+                width: 240,
+                height: 180,
+              },
             },
           ],
         },

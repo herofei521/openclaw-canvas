@@ -105,6 +105,15 @@ function toRelativeTime(iso: string | null): string {
   return `${Math.floor(deltaSeconds / 86400)}d ago`
 }
 
+function sanitizeWorkspaceSpaces(spaces: WorkspaceState['spaces']): WorkspaceState['spaces'] {
+  return spaces
+    .map(space => ({
+      ...space,
+      nodeIds: [...new Set(space.nodeIds)],
+    }))
+    .filter(space => space.nodeIds.length > 0 || space.rect !== null)
+}
+
 type SidebarAgentStatus = 'working' | 'standby'
 
 type SidebarTaskStatus = TaskRuntimeStatus | 'none'
@@ -188,20 +197,27 @@ function App(): React.JSX.Element {
       : (persisted.workspaces[0]?.id ?? null)
 
     setWorkspaces(
-      persisted.workspaces.map(workspace => ({
-        id: workspace.id,
-        name: workspace.name,
-        path: workspace.path,
-        nodes: [],
-        viewport: {
-          x: workspace.viewport.x,
-          y: workspace.viewport.y,
-          zoom: workspace.viewport.zoom,
-        },
-        isMinimapVisible: workspace.isMinimapVisible,
-        spaces: workspace.spaces,
-        activeSpaceId: workspace.activeSpaceId,
-      })),
+      persisted.workspaces.map(workspace => {
+        const sanitizedSpaces = sanitizeWorkspaceSpaces(workspace.spaces)
+        const hasActiveSpace =
+          workspace.activeSpaceId !== null &&
+          sanitizedSpaces.some(space => space.id === workspace.activeSpaceId)
+
+        return {
+          id: workspace.id,
+          name: workspace.name,
+          path: workspace.path,
+          nodes: [],
+          viewport: {
+            x: workspace.viewport.x,
+            y: workspace.viewport.y,
+            zoom: workspace.viewport.zoom,
+          },
+          isMinimapVisible: workspace.isMinimapVisible,
+          spaces: sanitizedSpaces,
+          activeSpaceId: hasActiveSpace ? workspace.activeSpaceId : null,
+        }
+      }),
     )
     setActiveWorkspaceId(resolvedActiveWorkspaceId)
 
@@ -319,6 +335,16 @@ function App(): React.JSX.Element {
             (result as PromiseFulfilledResult<import('@xyflow/react').Node<TerminalNodeData>>)
               .value,
         )
+      const hydratedNodeIds = new Set(hydratedNodes.map(node => node.id))
+      const sanitizedSpaces = sanitizeWorkspaceSpaces(
+        workspace.spaces.map(space => ({
+          ...space,
+          nodeIds: space.nodeIds.filter(nodeId => hydratedNodeIds.has(nodeId)),
+        })),
+      )
+      const hasActiveSpace =
+        workspace.activeSpaceId !== null &&
+        sanitizedSpaces.some(space => space.id === workspace.activeSpaceId)
 
       return {
         id: workspace.id,
@@ -331,8 +357,8 @@ function App(): React.JSX.Element {
           zoom: workspace.viewport.zoom,
         },
         isMinimapVisible: workspace.isMinimapVisible,
-        spaces: workspace.spaces,
-        activeSpaceId: workspace.activeSpaceId,
+        spaces: sanitizedSpaces,
+        activeSpaceId: hasActiveSpace ? workspace.activeSpaceId : null,
       }
     }
 
@@ -503,10 +529,12 @@ function App(): React.JSX.Element {
           }
 
           const nodeIds = new Set(nodes.map(node => node.id))
-          const nextSpaces = workspace.spaces.map(space => ({
-            ...space,
-            nodeIds: space.nodeIds.filter(nodeId => nodeIds.has(nodeId)),
-          }))
+          const nextSpaces = sanitizeWorkspaceSpaces(
+            workspace.spaces.map(space => ({
+              ...space,
+              nodeIds: space.nodeIds.filter(nodeId => nodeIds.has(nodeId)),
+            })),
+          )
           const hasActiveSpace =
             workspace.activeSpaceId !== null &&
             nextSpaces.some(space => space.id === workspace.activeSpaceId)
@@ -595,13 +623,14 @@ function App(): React.JSX.Element {
             return workspace
           }
 
+          const sanitizedSpaces = sanitizeWorkspaceSpaces(spaces)
           const hasActiveSpace =
             workspace.activeSpaceId !== null &&
-            spaces.some(space => space.id === workspace.activeSpaceId)
+            sanitizedSpaces.some(space => space.id === workspace.activeSpaceId)
 
           return {
             ...workspace,
-            spaces,
+            spaces: sanitizedSpaces,
             activeSpaceId: hasActiveSpace ? workspace.activeSpaceId : null,
           }
         }),

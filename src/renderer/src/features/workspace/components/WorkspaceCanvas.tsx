@@ -265,6 +265,19 @@ function toSuggestedWorktreePath(workspacePath: string, provider: AgentProvider)
   return `${workspacePath}/.cove/worktrees/${providerTitlePrefix(provider)}-${stamp}`
 }
 
+function shouldKeepSpace(space: WorkspaceSpaceState): boolean {
+  return space.nodeIds.length > 0 || space.rect !== null
+}
+
+function sanitizeSpaces(nextSpaces: WorkspaceSpaceState[]): WorkspaceSpaceState[] {
+  return nextSpaces
+    .map(space => ({
+      ...space,
+      nodeIds: [...new Set(space.nodeIds)],
+    }))
+    .filter(shouldKeepSpace)
+}
+
 function WorkspaceCanvasInner({
   workspaceId,
   workspacePath,
@@ -293,10 +306,13 @@ function WorkspaceCanvasInner({
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
   const [emptySelectionPrompt, setEmptySelectionPrompt] =
     useState<EmptySelectionPromptState | null>(null)
+  const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null)
+  const [spaceRenameDraft, setSpaceRenameDraft] = useState('')
 
   const reactFlow = useReactFlow<Node<TerminalNodeData>, Edge>()
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const restoredViewportWorkspaceIdRef = useRef<string | null>(null)
+  const spaceRenameInputRef = useRef<HTMLInputElement | null>(null)
 
   const nodesRef = useRef(nodes)
   const spacesRef = useRef(spaces)
@@ -352,8 +368,37 @@ function WorkspaceCanvasInner({
     setSelectedNodeIds([])
     setContextMenu(null)
     setEmptySelectionPrompt(null)
+    setEditingSpaceId(null)
+    setSpaceRenameDraft('')
     selectionDraftRef.current = null
   }, [workspaceId])
+
+  useEffect(() => {
+    if (!editingSpaceId) {
+      return
+    }
+
+    if (!spaces.some(space => space.id === editingSpaceId)) {
+      setEditingSpaceId(null)
+      setSpaceRenameDraft('')
+    }
+  }, [editingSpaceId, spaces])
+
+  useEffect(() => {
+    if (!editingSpaceId) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      const input = spaceRenameInputRef.current
+      if (!input) {
+        return
+      }
+
+      input.focus()
+      input.select()
+    })
+  }, [editingSpaceId])
 
   useEffect(() => {
     if (restoredViewportWorkspaceIdRef.current === workspaceId) {
@@ -1583,10 +1628,12 @@ function WorkspaceCanvasInner({
       }
 
       const assignedNodeSet = new Set(normalizedNodeIds)
-      const normalizedSpaces = spacesRef.current.map(space => ({
-        ...space,
-        nodeIds: space.nodeIds.filter(nodeId => !assignedNodeSet.has(nodeId)),
-      }))
+      const normalizedSpaces = sanitizeSpaces(
+        spacesRef.current.map(space => ({
+          ...space,
+          nodeIds: space.nodeIds.filter(nodeId => !assignedNodeSet.has(nodeId)),
+        })),
+      )
 
       const nextSpace: WorkspaceSpaceState = {
         id: crypto.randomUUID(),
@@ -1596,10 +1643,14 @@ function WorkspaceCanvasInner({
         rect: payload.rect,
       }
 
-      onSpacesChange([...normalizedSpaces, nextSpace])
-      onActiveSpaceChange(nextSpace.id)
+      const nextSpaces = sanitizeSpaces([...normalizedSpaces, nextSpace])
+      const hasCreatedSpace = nextSpaces.some(space => space.id === nextSpace.id)
+      onSpacesChange(nextSpaces)
+      onActiveSpaceChange(hasCreatedSpace ? nextSpace.id : null)
       setContextMenu(null)
       setEmptySelectionPrompt(null)
+      setEditingSpaceId(null)
+      setSpaceRenameDraft('')
     },
     [
       expandSelectionWithLinkedAgents,
@@ -1633,25 +1684,30 @@ function WorkspaceCanvasInner({
       }
 
       const movedNodeSet = new Set(expandedNodeIds)
-      const nextSpaces = spacesRef.current.map(space => {
-        const withoutMovedNodes = space.nodeIds.filter(nodeId => !movedNodeSet.has(nodeId))
+      const nextSpaces = sanitizeSpaces(
+        spacesRef.current.map(space => {
+          const withoutMovedNodes = space.nodeIds.filter(nodeId => !movedNodeSet.has(nodeId))
 
-        if (space.id !== targetSpace.id) {
+          if (space.id !== targetSpace.id) {
+            return {
+              ...space,
+              nodeIds: withoutMovedNodes,
+            }
+          }
+
           return {
             ...space,
-            nodeIds: withoutMovedNodes,
+            nodeIds: [...new Set([...withoutMovedNodes, ...expandedNodeIds])],
           }
-        }
+        }),
+      )
 
-        return {
-          ...space,
-          nodeIds: [...new Set([...withoutMovedNodes, ...expandedNodeIds])],
-        }
-      })
-
+      const hasTargetSpace = nextSpaces.some(space => space.id === targetSpace.id)
       onSpacesChange(nextSpaces)
-      onActiveSpaceChange(targetSpace.id)
+      onActiveSpaceChange(hasTargetSpace ? targetSpace.id : null)
       setContextMenu(null)
+      setEditingSpaceId(null)
+      setSpaceRenameDraft('')
     },
     [
       expandSelectionWithLinkedAgents,
@@ -1668,15 +1724,60 @@ function WorkspaceCanvasInner({
     }
 
     const expandedNodeIds = new Set(expandSelectionWithLinkedAgents(selectedIds))
-    const nextSpaces = spacesRef.current.map(space => ({
-      ...space,
-      nodeIds: space.nodeIds.filter(nodeId => !expandedNodeIds.has(nodeId)),
-    }))
+    const nextSpaces = sanitizeSpaces(
+      spacesRef.current.map(space => ({
+        ...space,
+        nodeIds: space.nodeIds.filter(nodeId => !expandedNodeIds.has(nodeId)),
+      })),
+    )
+    const nextActiveSpaceId =
+      activeSpaceId && nextSpaces.some(space => space.id === activeSpaceId) ? activeSpaceId : null
 
     onSpacesChange(nextSpaces)
-    onActiveSpaceChange(null)
+    onActiveSpaceChange(nextActiveSpaceId)
     setContextMenu(null)
-  }, [expandSelectionWithLinkedAgents, onActiveSpaceChange, onSpacesChange])
+    setEditingSpaceId(null)
+    setSpaceRenameDraft('')
+  }, [activeSpaceId, expandSelectionWithLinkedAgents, onActiveSpaceChange, onSpacesChange])
+
+  const startSpaceRename = useCallback(
+    (space: WorkspaceSpaceState) => {
+      onActiveSpaceChange(space.id)
+      setEditingSpaceId(space.id)
+      setSpaceRenameDraft(space.name)
+      setContextMenu(null)
+      setEmptySelectionPrompt(null)
+    },
+    [onActiveSpaceChange],
+  )
+
+  const cancelSpaceRename = useCallback(() => {
+    setEditingSpaceId(null)
+    setSpaceRenameDraft('')
+  }, [])
+
+  const commitSpaceRename = useCallback(
+    (spaceId: string) => {
+      const normalizedName = spaceRenameDraft.trim()
+      if (normalizedName.length === 0) {
+        cancelSpaceRename()
+        return
+      }
+
+      const nextSpaces = spacesRef.current.map(space =>
+        space.id === spaceId
+          ? {
+              ...space,
+              name: normalizedName,
+            }
+          : space,
+      )
+
+      onSpacesChange(nextSpaces)
+      cancelSpaceRename()
+    },
+    [cancelSpaceRename, onSpacesChange, spaceRenameDraft],
+  )
 
   const openSelectionContextMenu = useCallback((x: number, y: number) => {
     setContextMenu({
@@ -1718,11 +1819,6 @@ function WorkspaceCanvasInner({
         return
       }
 
-      if (selectedNodeIdsRef.current.length > 0) {
-        openSelectionContextMenu(event.clientX, event.clientY)
-        return
-      }
-
       const flowPosition = reactFlow.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
@@ -1736,8 +1832,10 @@ function WorkspaceCanvasInner({
         flowY: flowPosition.y,
       })
       setEmptySelectionPrompt(null)
+      setEditingSpaceId(null)
+      setSpaceRenameDraft('')
     },
-    [openSelectionContextMenu, reactFlow],
+    [reactFlow],
   )
 
   const handleSelectionChange = useCallback(
@@ -2905,6 +3003,8 @@ function WorkspaceCanvasInner({
       onClick={() => {
         setContextMenu(null)
         setEmptySelectionPrompt(null)
+        setEditingSpaceId(null)
+        setSpaceRenameDraft('')
       }}
       onPointerDownCapture={handleCanvasPointerDownCapture}
       onPointerMoveCapture={handleCanvasPointerMoveCapture}
@@ -2946,7 +3046,58 @@ function WorkspaceCanvasInner({
                 height: space.rect.height,
               }}
             >
-              <span className="workspace-space-region__label">{space.name}</span>
+              {editingSpaceId === space.id ? (
+                <input
+                  ref={spaceRenameInputRef}
+                  className="workspace-space-region__label-input nodrag nowheel"
+                  data-testid={`workspace-space-label-input-${space.id}`}
+                  value={spaceRenameDraft}
+                  onPointerDown={event => {
+                    event.stopPropagation()
+                  }}
+                  onClick={event => {
+                    event.stopPropagation()
+                  }}
+                  onChange={event => {
+                    setSpaceRenameDraft(event.target.value)
+                  }}
+                  onBlur={() => {
+                    commitSpaceRename(space.id)
+                  }}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      commitSpaceRename(space.id)
+                      return
+                    }
+
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      cancelSpaceRename()
+                    }
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="workspace-space-region__label"
+                  data-testid={`workspace-space-label-${space.id}`}
+                  onPointerDown={event => {
+                    event.stopPropagation()
+                  }}
+                  onClick={event => {
+                    event.stopPropagation()
+                    const sourceSpace = spacesRef.current.find(item => item.id === space.id)
+                    if (!sourceSpace) {
+                      return
+                    }
+
+                    startSpaceRename(sourceSpace)
+                  }}
+                >
+                  {space.name}
+                </button>
+              )}
             </div>
           ))}
         </ViewportPortal>
@@ -3042,7 +3193,7 @@ function WorkspaceCanvasInner({
               createSpaceFromEmptySelection()
             }}
           >
-            Create Workspace
+            Create Space
           </button>
           <button
             type="button"
@@ -3103,7 +3254,7 @@ function WorkspaceCanvasInner({
                   createSpaceFromSelectedNodes()
                 }}
               >
-                Create Workspace with Selected
+                Create Space with Selected
               </button>
               {spaces.map(space => (
                 <button
@@ -3125,7 +3276,7 @@ function WorkspaceCanvasInner({
                   removeSelectionFromSpaces()
                 }}
               >
-                Remove from Workspace
+                Remove from Space
               </button>
               <button
                 type="button"
