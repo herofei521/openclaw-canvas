@@ -2495,14 +2495,14 @@ test.describe('Workspace Canvas Interactions', () => {
       )
       await expect(removeButton).toBeVisible()
 
-      const confirmPromise = window.waitForEvent('dialog').then(async dialog => {
-        expect(dialog.type()).toBe('confirm')
-        expect(dialog.message()).toContain('workspace-remove-b')
-        await dialog.accept()
-      })
-
       await removeButton.click()
-      await confirmPromise
+
+      const removeDialog = window.locator('[data-testid="workspace-project-delete-confirmation"]')
+      await expect(removeDialog).toBeVisible()
+      await expect(removeDialog).toContainText('workspace-remove-b')
+
+      await window.locator('[data-testid="workspace-project-delete-confirm"]').click()
+      await expect(removeDialog).toHaveCount(0)
 
       await expect(window.locator('.workspace-item')).toHaveCount(1)
       await expect(window.locator('.workspace-item.workspace-item--active')).toContainText(

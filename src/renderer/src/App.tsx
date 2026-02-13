@@ -57,6 +57,11 @@ interface ProjectContextMenuState {
   y: number
 }
 
+interface ProjectDeleteConfirmationState {
+  workspaceId: string
+  workspaceName: string
+}
+
 function createInitialModelCatalog(): ProviderModelCatalog {
   return {
     'claude-code': {
@@ -182,6 +187,9 @@ function App(): React.JSX.Element {
   const [workspaces, setWorkspaces] = useState<WorkspaceState[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null)
   const [projectContextMenu, setProjectContextMenu] = useState<ProjectContextMenuState | null>(null)
+  const [projectDeleteConfirmation, setProjectDeleteConfirmation] =
+    useState<ProjectDeleteConfirmationState | null>(null)
+  const [isRemovingProject, setIsRemovingProject] = useState(false)
   const [agentSettings, setAgentSettings] = useState<AgentSettings>(DEFAULT_AGENT_SETTINGS)
   const [providerModelCatalog, setProviderModelCatalog] = useState<ProviderModelCatalog>(() =>
     createInitialModelCatalog(),
@@ -776,33 +784,33 @@ function App(): React.JSX.Element {
   )
 
   const handleRemoveWorkspace = useCallback(async (workspaceId: string): Promise<void> => {
-    setProjectContextMenu(null)
+    setIsRemovingProject(true)
 
     const targetWorkspace = workspacesRef.current.find(workspace => workspace.id === workspaceId)
     if (!targetWorkspace) {
+      setProjectDeleteConfirmation(null)
+      setIsRemovingProject(false)
       return
     }
 
-    const shouldRemove = window.confirm(
-      `Remove project "${targetWorkspace.name}"? This will close all terminals and agents in this project.`,
-    )
-    if (!shouldRemove) {
-      return
+    try {
+      await Promise.allSettled(
+        targetWorkspace.nodes
+          .map(node => node.data.sessionId)
+          .filter(sessionId => sessionId.length > 0)
+          .map(sessionId => window.coveApi.pty.kill({ sessionId })),
+      )
+
+      const nextWorkspaces = workspacesRef.current.filter(workspace => workspace.id !== workspaceId)
+      setWorkspaces(nextWorkspaces)
+      setActiveWorkspaceId(currentActiveId =>
+        currentActiveId === workspaceId ? (nextWorkspaces[0]?.id ?? null) : currentActiveId,
+      )
+      setFocusRequest(null)
+      setProjectDeleteConfirmation(null)
+    } finally {
+      setIsRemovingProject(false)
     }
-
-    await Promise.allSettled(
-      targetWorkspace.nodes
-        .map(node => node.data.sessionId)
-        .filter(sessionId => sessionId.length > 0)
-        .map(sessionId => window.coveApi.pty.kill({ sessionId })),
-    )
-
-    const nextWorkspaces = workspacesRef.current.filter(workspace => workspace.id !== workspaceId)
-    setWorkspaces(nextWorkspaces)
-    setActiveWorkspaceId(currentActiveId =>
-      currentActiveId === workspaceId ? (nextWorkspaces[0]?.id ?? null) : currentActiveId,
-    )
-    setFocusRequest(null)
   }, [])
 
   useEffect(() => {
@@ -1081,11 +1089,74 @@ function App(): React.JSX.Element {
             type="button"
             data-testid={`workspace-project-remove-${projectContextMenu.workspaceId}`}
             onClick={() => {
-              void handleRemoveWorkspace(projectContextMenu.workspaceId)
+              const targetWorkspace = workspaces.find(
+                workspace => workspace.id === projectContextMenu.workspaceId,
+              )
+              if (!targetWorkspace) {
+                setProjectContextMenu(null)
+                return
+              }
+
+              setProjectDeleteConfirmation({
+                workspaceId: targetWorkspace.id,
+                workspaceName: targetWorkspace.name,
+              })
+              setProjectContextMenu(null)
             }}
           >
             Remove Project
           </button>
+        </div>
+      ) : null}
+
+      {projectDeleteConfirmation ? (
+        <div
+          className="cove-window-backdrop workspace-task-delete-backdrop workspace-task-creator-backdrop"
+          onClick={() => {
+            if (isRemovingProject) {
+              return
+            }
+
+            setProjectDeleteConfirmation(null)
+          }}
+        >
+          <section
+            className="cove-window workspace-task-delete workspace-task-creator"
+            data-testid="workspace-project-delete-confirmation"
+            onClick={event => {
+              event.stopPropagation()
+            }}
+          >
+            <h3>Remove Project?</h3>
+            <p>
+              This will close all terminals and agents in{' '}
+              <strong>{projectDeleteConfirmation.workspaceName}</strong>.
+            </p>
+            <div className="cove-window__actions workspace-task-delete__actions workspace-task-creator__actions">
+              <button
+                type="button"
+                className="cove-window__action cove-window__action--ghost workspace-task-creator__action workspace-task-creator__action--ghost"
+                data-testid="workspace-project-delete-cancel"
+                disabled={isRemovingProject}
+                onClick={() => {
+                  setProjectDeleteConfirmation(null)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="cove-window__action cove-window__action--danger workspace-task-creator__action workspace-task-creator__action--danger"
+                data-testid="workspace-project-delete-confirm"
+                disabled={isRemovingProject}
+                onClick={() => {
+                  void handleRemoveWorkspace(projectDeleteConfirmation.workspaceId)
+                }}
+              >
+                {isRemovingProject ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </section>
         </div>
       ) : null}
 
