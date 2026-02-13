@@ -511,7 +511,6 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: -1;
   border: 1px dashed rgba(122, 172, 255, 0.78);
   border-radius: 12px;
   background: rgba(69, 123, 216, 0.12);
@@ -565,7 +564,49 @@ body {
 }
 
 .workspace-canvas .react-flow__viewport-portal {
-  z-index: -1;
+  z-index: 0;
+}
+
+.workspace-canvas .react-flow__nodes {
+  z-index: 1;
+}
+
+.workspace-space-region__drag-handle {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.workspace-space-region__drag-handle:active {
+  cursor: grabbing;
+}
+
+.workspace-space-region__drag-handle--top {
+  top: -4px;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+}
+
+.workspace-space-region__drag-handle--right {
+  top: 8px;
+  right: -4px;
+  bottom: 8px;
+  width: 8px;
+}
+
+.workspace-space-region__drag-handle--bottom {
+  left: 8px;
+  right: 8px;
+  bottom: -4px;
+  height: 8px;
+}
+
+.workspace-space-region__drag-handle--left {
+  top: 8px;
+  left: -4px;
+  bottom: 8px;
+  width: 8px;
 }
 
 .workspace-space-switcher {

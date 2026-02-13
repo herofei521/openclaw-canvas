@@ -1369,11 +1369,11 @@ test.describe('Workspace Canvas Interactions', () => {
         const overlayLayer = document.querySelector(
           '.workspace-canvas .react-flow__viewport-portal',
         ) as HTMLElement | null
-        const nodeWrapper = document.querySelector(
-          '.workspace-canvas .react-flow__node',
+        const nodeLayer = document.querySelector(
+          '.workspace-canvas .react-flow__nodes',
         ) as HTMLElement | null
 
-        if (!overlayLayer || !nodeWrapper) {
+        if (!overlayLayer || !nodeLayer) {
           return null
         }
 
@@ -1388,7 +1388,7 @@ test.describe('Workspace Canvas Interactions', () => {
 
         return {
           overlay: parseLevel(window.getComputedStyle(overlayLayer).zIndex),
-          node: parseLevel(window.getComputedStyle(nodeWrapper).zIndex),
+          node: parseLevel(window.getComputedStyle(nodeLayer).zIndex),
         }
       })
 
@@ -1397,6 +1397,162 @@ test.describe('Workspace Canvas Interactions', () => {
       }
 
       expect(levels.overlay).toBeLessThan(levels.node)
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('drags explicit space border and moves enclosed nodes together', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await clearAndSeedWorkspace(
+        window,
+        [
+          {
+            id: 'space-drag-node',
+            title: 'terminal-space-drag',
+            position: { x: 420, y: 340 },
+            width: 460,
+            height: 300,
+          },
+        ],
+        {
+          spaces: [
+            {
+              id: 'space-drag',
+              name: 'Drag Scope',
+              directoryPath: testWorkspacePath,
+              nodeIds: ['space-drag-node'],
+              rect: {
+                x: 340,
+                y: 280,
+                width: 620,
+                height: 420,
+              },
+            },
+          ],
+          activeSpaceId: 'space-drag',
+        },
+      )
+
+      const readPersistedSpaceAndNode = async (): Promise<{
+        nodeX: number
+        nodeY: number
+        rectX: number
+        rectY: number
+      } | null> => {
+        return await window.evaluate(
+          ({ key, nodeId, spaceId }) => {
+            const raw = window.localStorage.getItem(key)
+            if (!raw) {
+              return null
+            }
+
+            const parsed = JSON.parse(raw) as {
+              workspaces?: Array<{
+                nodes?: Array<{
+                  id?: string
+                  position?: {
+                    x?: number
+                    y?: number
+                  }
+                }>
+                spaces?: Array<{
+                  id?: string
+                  rect?: {
+                    x?: number
+                    y?: number
+                  } | null
+                }>
+              }>
+            }
+
+            const workspace = parsed.workspaces?.[0]
+            if (!workspace) {
+              return null
+            }
+
+            const node = workspace.nodes?.find(item => item.id === nodeId)
+            const space = workspace.spaces?.find(item => item.id === spaceId)
+            if (!node?.position || !space?.rect) {
+              return null
+            }
+
+            if (
+              typeof node.position.x !== 'number' ||
+              typeof node.position.y !== 'number' ||
+              typeof space.rect.x !== 'number' ||
+              typeof space.rect.y !== 'number'
+            ) {
+              return null
+            }
+
+            return {
+              nodeX: node.position.x,
+              nodeY: node.position.y,
+              rectX: space.rect.x,
+              rectY: space.rect.y,
+            }
+          },
+          {
+            key: storageKey,
+            nodeId: 'space-drag-node',
+            spaceId: 'space-drag',
+          },
+        )
+      }
+
+      const before = await readPersistedSpaceAndNode()
+      if (!before) {
+        throw new Error('failed to read initial persisted space/node state')
+      }
+
+      const dragHandle = window.locator('[data-testid="workspace-space-drag-space-drag-top"]')
+      await expect(dragHandle).toBeVisible()
+
+      const handleBox = await dragHandle.boundingBox()
+      if (!handleBox) {
+        throw new Error('space drag handle bounding box unavailable')
+      }
+
+      const startX = handleBox.x + handleBox.width * 0.5
+      const startY = handleBox.y + handleBox.height * 0.5
+      const dragDx = 160
+      const dragDy = 110
+
+      await window.mouse.move(startX, startY)
+      await window.mouse.down()
+      await window.mouse.move(startX + dragDx, startY + dragDy, { steps: 12 })
+      await window.mouse.up()
+
+      await expect
+        .poll(async () => {
+          const after = await readPersistedSpaceAndNode()
+          return after ? after.nodeX - before.nodeX : Number.NaN
+        })
+        .toBeGreaterThan(120)
+
+      await expect
+        .poll(async () => {
+          const after = await readPersistedSpaceAndNode()
+          return after ? after.nodeY - before.nodeY : Number.NaN
+        })
+        .toBeGreaterThan(80)
+
+      await expect
+        .poll(async () => {
+          const after = await readPersistedSpaceAndNode()
+          return after ? after.rectX - before.rectX : Number.NaN
+        })
+        .toBeGreaterThan(120)
+
+      await expect
+        .poll(async () => {
+          const after = await readPersistedSpaceAndNode()
+          return after ? after.rectY - before.rectY : Number.NaN
+        })
+        .toBeGreaterThan(80)
     } finally {
       await electronApp.close()
     }
@@ -2299,6 +2455,91 @@ test.describe('Workspace Canvas Interactions', () => {
         'workspace-a',
       )
       await expect(window.locator('.terminal-node__title').first()).toContainText('codex')
+    } finally {
+      await electronApp.close()
+    }
+  })
+
+  test('removes project from sidebar via right-click menu', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await seedWorkspaceState(window, {
+        activeWorkspaceId: 'workspace-remove-b',
+        workspaces: [
+          {
+            id: 'workspace-remove-a',
+            name: 'workspace-remove-a',
+            path: testWorkspacePath,
+            nodes: [],
+          },
+          {
+            id: 'workspace-remove-b',
+            name: 'workspace-remove-b',
+            path: `${testWorkspacePath}-b`,
+            nodes: [],
+          },
+        ],
+      })
+
+      const targetWorkspace = window
+        .locator('.workspace-item')
+        .filter({ has: window.locator('.workspace-item__name', { hasText: 'workspace-remove-b' }) })
+        .first()
+      await expect(targetWorkspace).toBeVisible()
+
+      await targetWorkspace.click({ button: 'right' })
+
+      const removeButton = window.locator(
+        '[data-testid="workspace-project-remove-workspace-remove-b"]',
+      )
+      await expect(removeButton).toBeVisible()
+
+      const confirmPromise = window.waitForEvent('dialog').then(async dialog => {
+        expect(dialog.type()).toBe('confirm')
+        expect(dialog.message()).toContain('workspace-remove-b')
+        await dialog.accept()
+      })
+
+      await removeButton.click()
+      await confirmPromise
+
+      await expect(window.locator('.workspace-item')).toHaveCount(1)
+      await expect(window.locator('.workspace-item.workspace-item--active')).toContainText(
+        'workspace-remove-a',
+      )
+
+      await expect
+        .poll(
+          async () => {
+            return await window.evaluate(key => {
+              const raw = window.localStorage.getItem(key)
+              if (!raw) {
+                return null
+              }
+
+              const parsed = JSON.parse(raw) as {
+                activeWorkspaceId?: string | null
+                workspaces?: Array<{
+                  id?: string
+                }>
+              }
+
+              return {
+                activeWorkspaceId:
+                  typeof parsed.activeWorkspaceId === 'string' ? parsed.activeWorkspaceId : null,
+                workspaceIds: (parsed.workspaces ?? [])
+                  .map(workspace => (typeof workspace.id === 'string' ? workspace.id : ''))
+                  .filter(id => id.length > 0),
+              }
+            }, storageKey)
+          },
+          { timeout: 10_000 },
+        )
+        .toEqual({
+          activeWorkspaceId: 'workspace-remove-a',
+          workspaceIds: ['workspace-remove-a'],
+        })
     } finally {
       await electronApp.close()
     }

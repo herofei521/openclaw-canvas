@@ -51,6 +51,12 @@ interface PersistNotice {
   message: string
 }
 
+interface ProjectContextMenuState {
+  workspaceId: string
+  x: number
+  y: number
+}
+
 function createInitialModelCatalog(): ProviderModelCatalog {
   return {
     'claude-code': {
@@ -175,6 +181,7 @@ function createDefaultWorkspaceViewport(): WorkspaceViewport {
 function App(): React.JSX.Element {
   const [workspaces, setWorkspaces] = useState<WorkspaceState[]>([])
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null)
+  const [projectContextMenu, setProjectContextMenu] = useState<ProjectContextMenuState | null>(null)
   const [agentSettings, setAgentSettings] = useState<AgentSettings>(DEFAULT_AGENT_SETTINGS)
   const [providerModelCatalog, setProviderModelCatalog] = useState<ProviderModelCatalog>(() =>
     createInitialModelCatalog(),
@@ -768,6 +775,67 @@ function App(): React.JSX.Element {
     [activeWorkspace],
   )
 
+  const handleRemoveWorkspace = useCallback(async (workspaceId: string): Promise<void> => {
+    setProjectContextMenu(null)
+
+    const targetWorkspace = workspacesRef.current.find(workspace => workspace.id === workspaceId)
+    if (!targetWorkspace) {
+      return
+    }
+
+    const shouldRemove = window.confirm(
+      `Remove project "${targetWorkspace.name}"? This will close all terminals and agents in this project.`,
+    )
+    if (!shouldRemove) {
+      return
+    }
+
+    await Promise.allSettled(
+      targetWorkspace.nodes
+        .map(node => node.data.sessionId)
+        .filter(sessionId => sessionId.length > 0)
+        .map(sessionId => window.coveApi.pty.kill({ sessionId })),
+    )
+
+    const nextWorkspaces = workspacesRef.current.filter(workspace => workspace.id !== workspaceId)
+    setWorkspaces(nextWorkspaces)
+    setActiveWorkspaceId(currentActiveId =>
+      currentActiveId === workspaceId ? (nextWorkspaces[0]?.id ?? null) : currentActiveId,
+    )
+    setFocusRequest(null)
+  }, [])
+
+  useEffect(() => {
+    if (!projectContextMenu) {
+      return
+    }
+
+    const closeMenu = (event: MouseEvent): void => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest('.workspace-project-context-menu')
+      ) {
+        return
+      }
+
+      setProjectContextMenu(null)
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setProjectContextMenu(null)
+      }
+    }
+
+    window.addEventListener('mousedown', closeMenu)
+    window.addEventListener('keydown', handleEscape)
+
+    return () => {
+      window.removeEventListener('mousedown', closeMenu)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [projectContextMenu])
+
   const activeSpaceName = useMemo(() => {
     if (!activeWorkspace || !activeWorkspace.activeSpaceId) {
       return 'All'
@@ -837,6 +905,14 @@ function App(): React.JSX.Element {
                     onClick={() => {
                       setActiveWorkspaceId(workspace.id)
                       setFocusRequest(null)
+                    }}
+                    onContextMenu={event => {
+                      event.preventDefault()
+                      setProjectContextMenu({
+                        workspaceId: workspace.id,
+                        x: event.clientX,
+                        y: event.clientY,
+                      })
                     }}
                     title={workspace.path}
                   >
@@ -986,6 +1062,32 @@ function App(): React.JSX.Element {
           )}
         </main>
       </div>
+
+      {projectContextMenu ? (
+        <div
+          className="workspace-context-menu workspace-project-context-menu"
+          style={{
+            top: projectContextMenu.y,
+            left: projectContextMenu.x,
+          }}
+          onMouseDown={event => {
+            event.stopPropagation()
+          }}
+          onClick={event => {
+            event.stopPropagation()
+          }}
+        >
+          <button
+            type="button"
+            data-testid={`workspace-project-remove-${projectContextMenu.workspaceId}`}
+            onClick={() => {
+              void handleRemoveWorkspace(projectContextMenu.workspaceId)
+            }}
+          >
+            Remove Project
+          </button>
+        </div>
+      ) : null}
 
       {isSettingsOpen ? (
         <SettingsPanel
