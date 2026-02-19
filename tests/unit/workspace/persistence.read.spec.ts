@@ -224,7 +224,7 @@ describe('workspace persistence (read/normalize)', () => {
 
     const restored = readPersistedState()
     expect(restored).not.toBeNull()
-    expect(restored?.settings.defaultProvider).toBe('claude-code')
+    expect(restored?.settings.defaultProvider).toBe('codex')
     expect(restored?.settings.customModelEnabledByProvider['claude-code']).toBe(false)
     expect(restored?.settings.customModelByProvider['claude-code']).toBe('')
     expect(restored?.settings.customModelOptionsByProvider['claude-code']).toEqual([])

@@ -38,7 +38,7 @@ export interface AgentSettings {
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
-  defaultProvider: 'claude-code',
+  defaultProvider: 'codex',
   customModelEnabledByProvider: {
     'claude-code': false,
     codex: false,

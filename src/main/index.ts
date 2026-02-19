@@ -1,6 +1,7 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { hydrateCliPathForPackagedApp } from './infrastructure/env/CliEnvironment'
 import { registerIpcHandlers } from './ipc/registerIpcHandlers'
 
 let ipcDisposable: ReturnType<typeof registerIpcHandlers> | null = null
@@ -39,6 +40,8 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  hydrateCliPathForPackagedApp(app.isPackaged === true)
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
