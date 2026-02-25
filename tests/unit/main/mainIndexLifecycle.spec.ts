@@ -7,6 +7,7 @@ function createMockApp() {
 
   return {
     whenReady: vi.fn(() => Promise.resolve()),
+    getPath: vi.fn((_name: string) => '/tmp/cove-test-userdata'),
     on: vi.fn((event: string, listener: Listener) => {
       const existing = listeners.get(event) ?? []
       existing.push(listener)
@@ -37,6 +38,7 @@ describe('main process lifecycle', () => {
 
       public webContents = {
         setWindowOpenHandler: vi.fn(),
+        on: vi.fn(),
       }
 
       public constructor() {

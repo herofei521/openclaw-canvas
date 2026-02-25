@@ -1,4 +1,3 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
 import type {
   AttachTerminalInput,
   DetachTerminalInput,
@@ -54,7 +53,6 @@ export interface CoveApi {
 
 declare global {
   interface Window {
-    electron: ElectronAPI
     coveApi: CoveApi
   }
 }

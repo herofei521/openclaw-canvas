@@ -157,7 +157,6 @@ export function TerminalNode({
       cursorBlink: true,
       fontFamily:
         'JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-      fontSize: terminalFontSize,
       theme: {
         background: '#0a0f1d',
         foreground: '#d6e4ff',

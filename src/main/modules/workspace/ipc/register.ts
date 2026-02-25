@@ -4,14 +4,18 @@ import { dialog, ipcMain } from 'electron'
 import { IPC_CHANNELS } from '../../../../shared/constants/ipc'
 import type { EnsureDirectoryInput, WorkspaceDirectory } from '../../../../shared/types/api'
 import type { IpcRegistrationDisposable } from '../../../ipc/types'
+import { createApprovedWorkspaceStore } from '../ApprovedWorkspaceStore'
 import { normalizeEnsureDirectoryPayload } from './validate'
 
 export function registerWorkspaceIpcHandlers(): IpcRegistrationDisposable {
+  const approvedWorkspaces = createApprovedWorkspaceStore()
+
   ipcMain.handle(
     IPC_CHANNELS.workspaceSelectDirectory,
     async (): Promise<WorkspaceDirectory | null> => {
       if (process.env.COVE_TEST_WORKSPACE) {
         const testWorkspacePath = resolve(process.env.COVE_TEST_WORKSPACE)
+        await approvedWorkspaces.registerRoot(testWorkspacePath)
         return {
           id: crypto.randomUUID(),
           name: basename(testWorkspacePath),
@@ -31,6 +35,8 @@ export function registerWorkspaceIpcHandlers(): IpcRegistrationDisposable {
       const pathChunks = workspacePath.split(/[\\/]/)
       const workspaceName = pathChunks[pathChunks.length - 1] || workspacePath
 
+      await approvedWorkspaces.registerRoot(workspacePath)
+
       return {
         id: crypto.randomUUID(),
         name: workspaceName,
@@ -43,6 +49,12 @@ export function registerWorkspaceIpcHandlers(): IpcRegistrationDisposable {
     IPC_CHANNELS.workspaceEnsureDirectory,
     async (_event, payload: EnsureDirectoryInput) => {
       const normalized = normalizeEnsureDirectoryPayload(payload)
+
+      const isApproved = await approvedWorkspaces.isPathApproved(normalized.path)
+      if (!isApproved) {
+        throw new Error('workspace:ensure-directory path is outside approved workspaces')
+      }
+
       await mkdir(normalized.path, { recursive: true })
     },
   )
