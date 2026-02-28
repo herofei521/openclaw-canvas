@@ -1,11 +1,9 @@
 import { useCallback } from 'react'
 import type { GitWorktreeInfo } from '@shared/types/api'
-import type { WorkspaceSpaceState } from '../../../types'
 import { toErrorMessage } from '../helpers'
 import { getWorktreeApiMethod, normalizeComparablePath } from './spaceWorktree.shared'
 
 export function useSpaceWorktreeRefresh({
-  space,
   workspacePath,
   setIsLoading,
   setError,
@@ -16,7 +14,6 @@ export function useSpaceWorktreeRefresh({
   setExistingBranchName,
   setStartPoint,
 }: {
-  space: WorkspaceSpaceState | null
   workspacePath: string
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>
   setError: React.Dispatch<React.SetStateAction<string | null>>
@@ -29,10 +26,6 @@ export function useSpaceWorktreeRefresh({
 }): (options?: { preferredWorktreePath?: string }) => Promise<void> {
   return useCallback(
     async (options?: { preferredWorktreePath?: string }) => {
-      if (!space) {
-        return
-      }
-
       setIsLoading(true)
       setError(null)
 
@@ -102,7 +95,6 @@ export function useSpaceWorktreeRefresh({
       setSelectedWorktreePath,
       setStartPoint,
       setWorktrees,
-      space,
       workspacePath,
     ],
   )

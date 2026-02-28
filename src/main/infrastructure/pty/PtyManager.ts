@@ -121,18 +121,19 @@ export class PtyManager {
 
   public kill(sessionId: string): void {
     const pty = this.sessions.get(sessionId)
-    if (!pty) {
-      return
+    if (pty) {
+      pty.kill()
+      this.sessions.delete(sessionId)
     }
 
-    pty.kill()
-    this.sessions.delete(sessionId)
     this.snapshots.delete(sessionId)
   }
 
-  public delete(sessionId: string): void {
+  public delete(sessionId: string, options: { keepSnapshot?: boolean } = {}): void {
     this.sessions.delete(sessionId)
-    this.snapshots.delete(sessionId)
+    if (options.keepSnapshot !== true) {
+      this.snapshots.delete(sessionId)
+    }
   }
 
   public disposeAll(): void {
@@ -141,6 +142,8 @@ export class PtyManager {
       this.sessions.delete(sessionId)
       this.snapshots.delete(sessionId)
     }
+
+    this.snapshots.clear()
   }
 
   private resolveDefaultShell(): string {

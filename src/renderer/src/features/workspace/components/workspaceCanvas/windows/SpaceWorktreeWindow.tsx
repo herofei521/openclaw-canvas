@@ -127,7 +127,6 @@ export function SpaceWorktreeWindow({
   }, [nodes, space])
 
   const refresh = useSpaceWorktreeRefresh({
-    space,
     workspacePath,
     setIsLoading,
     setError,
@@ -138,6 +137,8 @@ export function SpaceWorktreeWindow({
     setExistingBranchName,
     setStartPoint,
   })
+
+  const spaceIdentity = space?.id ?? null
 
   useEffect(() => {
     if (!spaceId || !space) {
@@ -163,7 +164,7 @@ export function SpaceWorktreeWindow({
     setError(null)
 
     void refresh({ preferredWorktreePath: space.directoryPath })
-  }, [refresh, space, spaceId])
+  }, [refresh, spaceId, spaceIdentity])
 
   const queueGuardIfNeeded = useCallback(
     (pending: PendingOperation, label: string): boolean => {

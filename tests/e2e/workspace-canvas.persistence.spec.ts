@@ -70,6 +70,88 @@ test.describe('Workspace Canvas - Persistence', () => {
     }
   })
 
+  test('preserves terminal history if command exits while workspace inactive', async () => {
+    const { electronApp, window } = await launchApp()
+
+    try {
+      await seedWorkspaceState(window, {
+        activeWorkspaceId: 'workspace-a',
+        workspaces: [
+          {
+            id: 'workspace-a',
+            name: 'workspace-a',
+            path: testWorkspacePath,
+            nodes: [
+              {
+                id: 'node-a',
+                title: 'terminal-a',
+                position: { x: 120, y: 120 },
+                width: 460,
+                height: 300,
+              },
+            ],
+          },
+          {
+            id: 'workspace-b',
+            name: 'workspace-b',
+            path: testWorkspacePath,
+            nodes: [
+              {
+                id: 'node-b',
+                title: 'terminal-b',
+                position: { x: 160, y: 160 },
+                width: 460,
+                height: 300,
+              },
+            ],
+          },
+        ],
+      })
+
+      const terminal = window.locator('.terminal-node').first()
+      await expect(terminal).toBeVisible()
+      await expect(terminal.locator('.xterm')).toBeVisible()
+
+      await window.evaluate(() => {
+        ;(window as unknown as { __coveTestExitCode?: number | null }).__coveTestExitCode = null
+
+        const unsubscribe = window.coveApi.pty.onExit(event => {
+          ;(window as unknown as { __coveTestExitCode?: number | null }).__coveTestExitCode =
+            event.exitCode
+          unsubscribe()
+        })
+      })
+
+      const token = `COVE_INACTIVE_EXIT_${Date.now()}`
+      await terminal.locator('.xterm').click()
+      await expect(terminal.locator('.xterm-helper-textarea')).toBeFocused()
+      await window.keyboard.type(`sleep 1; echo ${token}; exit`)
+      await window.keyboard.press('Enter')
+
+      await window.locator('.workspace-item').nth(1).click()
+      await expect(window.locator('.workspace-item').nth(1)).toHaveClass(/workspace-item--active/)
+      await expect(window.locator('.terminal-node')).toHaveCount(1)
+
+      await expect
+        .poll(
+          async () => {
+            return await window.evaluate(
+              () => (window as unknown as { __coveTestExitCode?: number | null }).__coveTestExitCode,
+            )
+          },
+          { timeout: 10_000 },
+        )
+        .toBe(0)
+
+      await window.locator('.workspace-item').nth(0).click()
+      await expect(window.locator('.workspace-item').nth(0)).toHaveClass(/workspace-item--active/)
+      await expect(window.locator('.terminal-node')).toHaveCount(1)
+      await expect(window.locator('.terminal-node').first()).toContainText(token)
+    } finally {
+      await electronApp.close()
+    }
+  })
+
   test('preserves terminal history after app reload', async () => {
     const { electronApp, window } = await launchApp()
 
