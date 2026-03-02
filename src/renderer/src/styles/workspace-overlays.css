@@ -61,7 +61,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: calc(100% - 20px);
+  max-width: min(520px, calc(100vw - 48px));
   pointer-events: auto;
 }
 
@@ -75,7 +75,8 @@
   line-height: 1.4;
   white-space: nowrap;
   cursor: text;
-  max-width: calc(100% - 78px);
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -87,9 +88,25 @@
   border-radius: 999px;
   padding: 1px 6px;
   font-size: calc(10px * var(--cove-ui-font-scale));
-  letter-spacing: 0.4px;
+  max-width: 220px;
   line-height: 1.4;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-space-region__branch-badge {
+  border: 1px solid rgba(166, 200, 255, 0.24);
+  background: rgba(12, 23, 45, 0.92);
+  color: rgba(216, 232, 255, 0.92);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: calc(10px * var(--cove-ui-font-scale));
+  max-width: 240px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .workspace-space-region__menu {

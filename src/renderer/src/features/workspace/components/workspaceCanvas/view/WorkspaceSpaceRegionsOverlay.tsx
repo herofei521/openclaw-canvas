@@ -1,5 +1,6 @@
 import React from 'react'
 import { ViewportPortal } from '@xyflow/react'
+import type { GitWorktreeInfo } from '@shared/types/api'
 import type { WorkspaceSpaceRect } from '../../../types'
 import type { SpaceVisual } from '../types'
 
@@ -35,29 +36,95 @@ export function WorkspaceSpaceRegionsOverlay({
   startSpaceRename,
   onOpenSpaceMenu,
 }: WorkspaceSpaceRegionsOverlayProps): React.JSX.Element {
-  const worktreeLabelByDirectory = React.useMemo(() => {
-    const unique = [...new Set(spaceVisuals.map(space => space.directoryPath.trim()))].filter(
-      path => path.length > 0 && path !== workspacePath,
-    )
+  const normalizedWorkspacePath = React.useMemo(
+    () => normalizeComparablePath(workspacePath),
+    [workspacePath],
+  )
 
-    unique.sort((left, right) => left.localeCompare(right))
+  const worktreeDirectories = React.useMemo(() => {
+    const unique = new Set<string>()
 
-    const labels = new Map<string, string>()
-    unique.forEach((path, index) => {
-      labels.set(path, `WT${index + 1}`)
+    spaceVisuals.forEach(space => {
+      const directoryPath = normalizeComparablePath(space.directoryPath)
+      if (directoryPath.length === 0 || directoryPath === normalizedWorkspacePath) {
+        return
+      }
+
+      unique.add(directoryPath)
     })
 
-    return labels
-  }, [spaceVisuals, workspacePath])
+    return [...unique].sort((left, right) => left.localeCompare(right))
+  }, [normalizedWorkspacePath, spaceVisuals])
+
+  const worktreeDirectoriesKey = React.useMemo(
+    () => worktreeDirectories.join('|'),
+    [worktreeDirectories],
+  )
+
+  const [worktreeInfoByPath, setWorktreeInfoByPath] = React.useState<
+    Map<string, GitWorktreeInfo>
+  >(() => new Map())
+
+  React.useEffect(() => {
+    if (worktreeDirectories.length === 0) {
+      setWorktreeInfoByPath(new Map())
+      return
+    }
+
+    const listWorktrees = window.coveApi?.worktree?.listWorktrees
+    if (typeof listWorktrees !== 'function') {
+      setWorktreeInfoByPath(new Map())
+      return
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const result = await listWorktrees({ repoPath: workspacePath })
+        if (cancelled) {
+          return
+        }
+
+        const nextMap = new Map<string, GitWorktreeInfo>()
+        result.worktrees.forEach(entry => {
+          nextMap.set(normalizeComparablePath(entry.path), entry)
+        })
+
+        setWorktreeInfoByPath(nextMap)
+      } catch {
+        if (cancelled) {
+          return
+        }
+
+        setWorktreeInfoByPath(new Map())
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [worktreeDirectories.length, worktreeDirectoriesKey, workspacePath])
 
   return (
     <ViewportPortal>
       {spaceVisuals.map(space => {
-        const normalizedDirectoryPath = space.directoryPath.trim()
+        const normalizedDirectoryPath = normalizeComparablePath(space.directoryPath)
         const hasWorktreeDirectory =
-          normalizedDirectoryPath.length > 0 && normalizedDirectoryPath !== workspacePath
+          normalizedDirectoryPath.length > 0 && normalizedDirectoryPath !== normalizedWorkspacePath
         const resolvedRect =
           spaceFramePreview?.spaceId === space.id ? spaceFramePreview.rect : space.rect
+        const resolvedWorktreeInfo = hasWorktreeDirectory
+          ? (worktreeInfoByPath.get(normalizedDirectoryPath) ?? null)
+          : null
+        const resolvedWorktreeName = hasWorktreeDirectory
+          ? basenameFromPath(resolvedWorktreeInfo?.path ?? normalizedDirectoryPath)
+          : null
+
+        const resolvedBranchLabel = resolvedWorktreeInfo
+          ? (resolvedWorktreeInfo.branch ??
+            (resolvedWorktreeInfo.head ? `detached@${toShortSha(resolvedWorktreeInfo.head)}` : null))
+          : null
 
         return (
           <div
@@ -163,12 +230,27 @@ export function WorkspaceSpaceRegionsOverlay({
                 </button>
 
                 {hasWorktreeDirectory ? (
-                  <span
-                    className="workspace-space-region__worktree-badge"
-                    title={normalizedDirectoryPath}
-                  >
-                    {worktreeLabelByDirectory.get(normalizedDirectoryPath) ?? 'WT'}
-                  </span>
+                  <>
+                    <span
+                      className="workspace-space-region__worktree-badge"
+                      data-testid={`workspace-space-worktree-name-${space.id}`}
+                      title={normalizedDirectoryPath}
+                    >
+                      {resolvedWorktreeName ?? 'Worktree'}
+                    </span>
+                    {resolvedBranchLabel ? (
+                      <span
+                        className="workspace-space-region__branch-badge"
+                        data-testid={`workspace-space-worktree-branch-${space.id}`}
+                        title={
+                          resolvedWorktreeInfo?.branch ??
+                          (resolvedWorktreeInfo?.head ?? 'Detached HEAD')
+                        }
+                      >
+                        {resolvedBranchLabel}
+                      </span>
+                    ) : null}
+                  </>
                 ) : null}
 
                 <button
@@ -191,4 +273,21 @@ export function WorkspaceSpaceRegionsOverlay({
       })}
     </ViewportPortal>
   )
+}
+
+function normalizeComparablePath(pathValue: string): string {
+  return pathValue.trim().replace(/[\\/]+$/, '')
+}
+
+function basenameFromPath(pathValue: string): string {
+  const normalized = normalizeComparablePath(pathValue)
+  if (normalized.length === 0) {
+    return ''
+  }
+
+  return normalized.split(/[\\/]/).filter(Boolean).at(-1) ?? ''
+}
+
+function toShortSha(value: string): string {
+  return value.trim().slice(0, 7)
 }
