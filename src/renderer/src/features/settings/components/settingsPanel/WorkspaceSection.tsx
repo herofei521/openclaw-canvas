@@ -5,95 +5,93 @@ function resolveWorktreesRoot(workspacePath: string, worktreesRoot: string): str
   if (trimmed.length === 0) {
     return `${workspacePath.replace(/[\\/]+$/, '')}/.cove/worktrees`
   }
-
   if (/^([a-zA-Z]:[\\/]|\/)/.test(trimmed)) {
     return trimmed.replace(/[\\/]+$/, '')
   }
-
   const base = workspacePath.replace(/[\\/]+$/, '')
   const normalizedCustom = trimmed
     .replace(/^[.][\\/]+/, '')
     .replace(/^[\\/]+/, '')
     .replace(/[\\/]+$/, '')
-
   return `${base}/${normalizedCustom}`
 }
 
+function getFolderName(path: string): string {
+  const parts = path.split(/[\\/]/).filter(Boolean)
+  return parts[parts.length - 1] || path
+}
+
 export function WorkspaceSection({
-  workspaceName,
   workspacePath,
   worktreesRoot,
   onChangeWorktreesRoot,
 }: {
-  workspaceName: string | null
-  workspacePath: string | null
+  workspacePath: string
   worktreesRoot: string
   onChangeWorktreesRoot: (worktreesRoot: string) => void
 }): React.JSX.Element {
-  const resolvedRoot = useMemo(() => {
-    if (!workspacePath) {
-      return ''
-    }
-
-    return resolveWorktreesRoot(workspacePath, worktreesRoot)
-  }, [workspacePath, worktreesRoot])
+  const folderName = useMemo(() => getFolderName(workspacePath), [workspacePath])
+  const resolvedRoot = useMemo(
+    () => resolveWorktreesRoot(workspacePath, worktreesRoot),
+    [workspacePath, worktreesRoot],
+  )
 
   return (
     <div className="settings-panel__section" id="settings-section-workspace">
-      <h3>Workspace Worktree</h3>
+      <h3 className="settings-panel__section-title">{folderName}</h3>
 
-      {workspacePath ? (
-        <>
-          <p className="settings-panel__hint">
-            Project: <strong>{workspaceName ?? 'Unnamed Project'}</strong>
-          </p>
-          <p className="settings-panel__path-preview">{workspacePath}</p>
+      <div className="settings-panel__row">
+        <div className="settings-panel__row-label">
+          <strong>Project Path</strong>
+          <span>Full filesystem path to the project root.</span>
+        </div>
+        <div className="settings-panel__control">
+          <span
+            style={{ fontSize: '12px', color: '#666', wordBreak: 'break-all', textAlign: 'right' }}
+          >
+            {workspacePath}
+          </span>
+        </div>
+      </div>
 
-          <div className="settings-panel__row">
-            <span>Worktree Root Directory</span>
-            <input
-              id="settings-worktree-root"
-              data-testid="settings-worktree-root"
-              value={worktreesRoot}
-              placeholder=".cove/worktrees"
-              onChange={event => {
-                onChangeWorktreesRoot(event.target.value)
-              }}
-            />
-          </div>
+      <div className="settings-panel__row">
+        <div className="settings-panel__row-label">
+          <strong>Worktree Root</strong>
+          <span>Relative or absolute path for agent worktrees.</span>
+        </div>
+        <div
+          className="settings-panel__control"
+          style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}
+        >
+          <input
+            value={worktreesRoot}
+            placeholder=".cove/worktrees"
+            onChange={event => onChangeWorktreesRoot(event.target.value)}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={worktreesRoot.trim().length === 0}
+            onClick={() => onChangeWorktreesRoot('')}
+          >
+            Reset to Default
+          </button>
+        </div>
+      </div>
 
-          <div className="settings-panel__row">
-            <span>Resolved Path</span>
-            <p className="settings-panel__path-preview settings-panel__path-preview--inline">
-              {resolvedRoot}
-            </p>
-          </div>
-
-          <div className="settings-panel__row settings-panel__row--actions">
-            <span />
-            <button
-              type="button"
-              className="cove-window__action cove-window__action--secondary"
-              data-testid="settings-worktree-root-reset"
-              disabled={worktreesRoot.trim().length === 0}
-              onClick={() => {
-                onChangeWorktreesRoot('')
-              }}
-            >
-              Use Default (`.cove/worktrees`)
-            </button>
-          </div>
-
-          <p className="settings-panel__hint">
-            Used when creating a new worktree from a Space. Relative path is based on project root;
-            absolute path starts with `/` (or `C:\...` on Windows).
-          </p>
-        </>
-      ) : (
-        <p className="settings-panel__hint">
-          Select a project first. Worktree root is configured per project.
-        </p>
-      )}
+      <div className="settings-panel__row">
+        <div className="settings-panel__row-label">
+          <strong>Resolved Path</strong>
+          <span>The actual path where worktrees will be created.</span>
+        </div>
+        <div className="settings-panel__control">
+          <span
+            style={{ fontSize: '12px', color: '#888', wordBreak: 'break-all', textAlign: 'right' }}
+          >
+            {resolvedRoot}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

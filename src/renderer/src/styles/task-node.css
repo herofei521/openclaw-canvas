@@ -455,28 +455,3 @@
   justify-content: flex-end;
   gap: 8px;
 }
-
-@media (max-width: 860px) {
-  .settings-panel {
-    width: min(680px, calc(100vw - 24px));
-    max-height: calc(100vh - 24px);
-    padding: 14px;
-  }
-
-  .settings-panel__layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .settings-panel__sidebar {
-    border-right: none;
-    border-bottom: 1px solid rgba(98, 127, 208, 0.34);
-    padding-right: 0;
-    padding-bottom: 8px;
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .settings-panel__nav-button {
-    width: auto;
-  }
-}

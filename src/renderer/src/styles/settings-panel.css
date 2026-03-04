@@ -1,304 +1,355 @@
 .settings-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(5, 10, 20, 0.58);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(16px);
   display: grid;
   place-items: center;
   z-index: 100;
 }
 
 .settings-panel {
-  width: min(760px, calc(100vw - 48px));
-  max-height: calc(100vh - 48px);
-  overflow: hidden;
-  border: 1px solid rgba(139, 171, 255, 0.45);
-  border-radius: 16px;
-  padding: 18px;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(84, 122, 228, 0.2), transparent 42%),
-    linear-gradient(180deg, rgba(13, 21, 40, 0.98) 0%, rgba(9, 15, 29, 0.98) 100%);
-  box-shadow:
-    0 24px 56px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(164, 196, 255, 0.16);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.settings-panel__layout {
-  min-height: 0;
-  flex: 1;
+  width: min(900px, calc(100vw - 64px));
+  height: min(720px, calc(100vh - 64px));
+  background: #0c0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 200px 1fr;
+  overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
 }
 
+/* --- Sidebar --- */
 .settings-panel__sidebar {
-  min-height: 0;
-  border-right: 1px solid rgba(98, 127, 208, 0.34);
-  padding-right: 10px;
+  background: #080808;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 40px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .settings-panel__nav-button {
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  padding: 7px 10px;
-  border-color: rgba(93, 122, 204, 0.5);
-  background: rgba(30, 45, 79, 0.28);
+  all: unset;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.settings-panel__nav-button:hover {
+  color: #eee;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .settings-panel__nav-button--active {
-  border-color: rgba(132, 166, 255, 0.85);
-  background: rgba(83, 123, 238, 0.45);
-  color: #f0f6ff;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+}
+
+.settings-panel__nav-button--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #5e9cff;
+  border-radius: 0 2px 2px 0;
+}
+
+/* --- Content Layout --- */
+.settings-panel__content-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.settings-panel__header {
+  padding: 24px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-panel__header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.settings-panel__close {
+  all: unset;
+  color: #666;
+  cursor: pointer;
+  font-size: 20px;
+  transition: color 0.2s;
+}
+
+.settings-panel__close:hover {
+  color: #fff;
 }
 
 .settings-panel__content {
-  min-height: 0;
-  overflow: auto;
-  padding-right: 4px;
+  padding: 0 40px 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+/* --- Typography --- */
+.settings-panel__section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #5e9cff;
+  margin-bottom: 24px;
+  padding-top: 40px;
+}
+
+/* --- Setting Rows --- */
+.settings-panel__row {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  align-items: center;
+  gap: 40px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.settings-panel__row:last-child {
+  border-bottom: none;
+}
+
+.settings-panel__row-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-panel__row-label strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: #eee;
+}
+
+.settings-panel__row-label span {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* --- Controls --- */
+.settings-panel__control {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* --- Toggle Switch --- */
+.cove-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.cove-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cove-toggle__slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #222;
+  transition: 0.2s;
+  border-radius: 20px;
+}
+
+.cove-toggle__slider:before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #888;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+.cove-toggle input:checked + .cove-toggle__slider {
+  background-color: #5e9cff;
+}
+
+.cove-toggle input:checked + .cove-toggle__slider:before {
+  transform: translateX(14px);
+  background-color: #fff;
+}
+
+/* --- Vertical Section Layout --- */
+.settings-panel__section--vertical {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.settings-panel__header {
+.settings-panel__section--vertical .settings-panel__row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-bottom: none;
+  padding: 0;
+}
+
+/* Override for toggle rows that should stay horizontal */
+.settings-panel__section--vertical .settings-panel__row--horizontal {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.settings-panel__section--vertical .settings-panel__row--horizontal .settings-panel__control {
+  justify-content: flex-end;
+  width: auto;
+}
+
+.settings-panel select,
+.settings-panel input {
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 6px;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 13px;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.settings-panel input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #5e9cff;
+}
+
+.settings-panel select:hover,
+.settings-panel input:hover {
+  border-color: #333;
+}
+
+.settings-panel select:focus,
+.settings-panel input:focus {
+  outline: none;
+  border-color: #5e9cff;
+  box-shadow: 0 0 0 2px rgba(94, 156, 255, 0.1);
+}
+
+/* --- Optimized List Style --- */
+.settings-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.settings-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px 16px;
+  margin: 0 -16px;
+  border-radius: 6px;
+  transition: background 0.2s;
 }
 
-.settings-panel__header h2 {
-  font-size: calc(20px * var(--cove-ui-font-scale));
-  color: #f0f6ff;
+.settings-list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.settings-panel .settings-panel__close {
-  min-width: 32px;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  font-size: calc(17px * var(--cove-ui-font-scale));
-  line-height: 1;
-  border-radius: 8px;
-  border: 1px solid rgba(104, 137, 219, 0.42);
-  background: rgba(17, 30, 56, 0.82);
-}
-
-.settings-panel .settings-panel__close:hover {
-  background: rgba(35, 54, 93, 0.94);
-  border-color: rgba(138, 173, 255, 0.55);
-}
-
-.settings-panel__section {
+.settings-list-item__left {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.settings-panel__section h3,
-.settings-panel__section label {
-  font-size: calc(13px * var(--cove-ui-font-scale));
-  color: #c6d7f7;
-}
-
-.settings-panel__section select,
-.settings-panel__section input,
-.settings-panel__row select {
-  border: 1px solid rgba(98, 133, 226, 0.55);
-  background: rgba(9, 17, 33, 0.88);
-  color: #eaf2ff;
-  border-radius: 10px;
-  padding: 9px 11px;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease,
-    background 0.18s ease;
-}
-
-.settings-panel__section select:focus,
-.settings-panel__section input:focus,
-.settings-panel__row select:focus {
-  outline: none;
-  border-color: rgba(134, 168, 255, 0.9);
-  box-shadow: 0 0 0 3px rgba(96, 141, 255, 0.2);
-  background: rgba(12, 23, 45, 0.95);
-}
-
-.settings-panel__number-control {
-  display: inline-flex;
   align-items: center;
-  justify-self: end;
-  gap: 8px;
+  gap: 12px;
+  font-size: 13px;
+  color: #ccc;
+  cursor: pointer;
+  flex: 1;
 }
 
-.settings-panel__number-control input[type='number'] {
-  width: 92px;
-  text-align: right;
-}
-
-.settings-panel__number-control span {
-  min-width: 24px;
-  text-align: left;
-  font-size: calc(11px * var(--cove-ui-font-scale));
-  color: #d2e2ff;
+.settings-list-item__left input[type='radio'] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
 }
 
 .settings-provider-card {
-  border: 1px solid rgba(96, 130, 223, 0.35);
-  border-radius: 10px;
-  background: rgba(12, 20, 38, 0.75);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 24px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-provider-card:last-child {
+  border-bottom: none;
 }
 
 .settings-provider-card__header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-}
-
-.settings-provider-card__header strong {
-  font-size: calc(13px * var(--cove-ui-font-scale));
-  color: #d8e6ff;
-}
-
-.settings-provider-card__refresh:disabled {
-  opacity: 0.7;
-  cursor: default;
-}
-
-.settings-provider-card__toggle {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #bad0f9;
+  margin-bottom: 24px;
 }
 
-.settings-provider-card__toggle input {
-  width: 14px;
-  height: 14px;
-}
-
-.settings-provider-card__model-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 180px;
-  overflow: auto;
-  border: 1px solid rgba(90, 121, 210, 0.45);
-  border-radius: 8px;
-  padding: 8px;
-  background: rgba(8, 14, 28, 0.7);
-}
-
-.settings-provider-card__empty {
-  margin: 0;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #93aeda;
-}
-
-.settings-provider-card__model-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.settings-provider-card__model-radio {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #d6e6ff;
+/* --- Buttons --- */
+.settings-panel button.primary {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.settings-provider-card__model-radio span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.settings-panel button.primary:hover {
+  background: #e0e0e0;
 }
 
-.settings-provider-card__model-radio input {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
+.settings-panel button.primary:active {
+  transform: scale(0.98);
 }
 
-.settings-provider-card__model-remove {
-  padding: 4px 8px;
-  font-size: calc(11px * var(--cove-ui-font-scale));
-  line-height: 1.2;
+.settings-panel button.primary:disabled {
+  background: #333;
+  color: #666;
+  cursor: not-allowed;
 }
 
-.settings-provider-card__add-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
+.settings-panel button.secondary {
+  background: transparent;
+  border: 1px solid #333;
+  color: #eee;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.settings-provider-card__add-row button {
-  min-width: 64px;
-  padding: 8px 12px;
-}
-
-.settings-provider-card__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: calc(11px * var(--cove-ui-font-scale));
-  color: #93aeda;
-}
-
-.settings-provider-card__error {
-  color: #ffb2b2;
-}
-
-.settings-panel__row {
-  display: grid;
-  grid-template-columns: 1fr minmax(0, 280px);
-  align-items: center;
-  gap: 12px;
-}
-
-.settings-panel__row--actions {
-  align-items: start;
-}
-
-.settings-panel__row span {
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #b8caef;
-}
-
-.settings-panel__path-preview {
-  margin: 0;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #b8caef;
-  border: 1px solid rgba(90, 121, 210, 0.36);
-  border-radius: 8px;
-  background: rgba(8, 14, 28, 0.72);
-  padding: 8px 10px;
-  overflow-wrap: anywhere;
-}
-
-.settings-panel__path-preview--inline {
-  justify-self: stretch;
-}
-
-.settings-panel__hint {
-  font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #98afd9;
+.settings-panel button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #444;
 }

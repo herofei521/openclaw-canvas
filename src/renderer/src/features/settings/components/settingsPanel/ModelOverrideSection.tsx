@@ -27,19 +27,22 @@ export function ModelOverrideSection(props: {
 }): React.JSX.Element {
   const {
     settings,
-    modelCatalogByProvider,
-    addModelInputByProvider,
-    onRefreshProviderModels,
     onToggleCustomModelEnabled,
     onSelectProviderModel,
     onRemoveCustomModelOption,
     onChangeAddModelInput,
     onAddCustomModelOption,
+    modelCatalogByProvider,
+    addModelInputByProvider,
   } = props
 
   return (
-    <div className="settings-panel__section" id="settings-section-model-override">
-      <h3>Model Override</h3>
+    <div
+      className="settings-panel__section settings-panel__section--vertical"
+      id="settings-section-model-override"
+    >
+      <h3 className="settings-panel__section-title">Model Overrides</h3>
+
       {AGENT_PROVIDERS.map(provider => {
         const modelCatalog = modelCatalogByProvider[provider]
         const customEnabled = settings.customModelEnabledByProvider[provider]
@@ -55,121 +58,94 @@ export function ModelOverrideSection(props: {
         ]
 
         const addInputValue = addModelInputByProvider[provider]
-        const addInputPlaceholder =
-          provider === 'codex' ? 'Example: gpt-5.2-codex' : 'Example: claude-sonnet-4-5-20250929'
 
         return (
-          <article className="settings-provider-card" key={provider}>
+          <div
+            className="settings-provider-card"
+            key={provider}
+            style={{
+              borderTop: 'none',
+              padding: '24px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+            }}
+          >
             <div className="settings-provider-card__header">
-              <strong>{AGENT_PROVIDER_LABEL[provider]}</strong>
-              <button
-                type="button"
-                className="settings-provider-card__refresh"
-                disabled={modelCatalog.isLoading}
-                onClick={() => {
-                  onRefreshProviderModels(provider)
-                }}
-              >
-                {modelCatalog.isLoading ? 'Refreshing...' : 'Refresh Models'}
-              </button>
+              <strong style={{ fontSize: '14px', color: '#fff' }}>
+                {AGENT_PROVIDER_LABEL[provider]}
+              </strong>
             </div>
 
-            <label className="settings-provider-card__toggle">
-              <input
-                type="checkbox"
-                data-testid={`settings-custom-model-enabled-${provider}`}
-                checked={customEnabled}
-                onChange={event => {
-                  onToggleCustomModelEnabled(provider, event.target.checked)
-                }}
-              />
-              <span>Use custom model (unchecked = follow CLI default)</span>
-            </label>
+            <div className="settings-panel__row settings-panel__row--horizontal">
+              <div className="settings-panel__row-label">
+                <strong>Use Custom Model</strong>
+              </div>
+              <div className="settings-panel__control">
+                <label className="cove-toggle">
+                  <input
+                    type="checkbox"
+                    checked={customEnabled}
+                    onChange={event => onToggleCustomModelEnabled(provider, event.target.checked)}
+                  />
+                  <span className="cove-toggle__slider"></span>
+                </label>
+              </div>
+            </div>
 
-            <div
-              className="settings-provider-card__model-list"
-              data-testid={`settings-model-list-${provider}`}
-            >
-              {allModels.length === 0 ? (
-                <p className="settings-provider-card__empty">No models yet. Add one below.</p>
-              ) : (
-                allModels.map(model => {
-                  const isCustomOption = customOptions.includes(model)
-
-                  return (
-                    <div className="settings-provider-card__model-item" key={model}>
-                      <label className="settings-provider-card__model-radio">
+            {customEnabled && (
+              <div style={{ marginTop: '8px' }}>
+                <div className="settings-list-container">
+                  {allModels.map(model => (
+                    <div className="settings-list-item" key={model}>
+                      <label className="settings-list-item__left">
                         <input
                           type="radio"
                           name={`settings-model-${provider}`}
                           checked={customModel === model}
-                          onChange={() => {
-                            onSelectProviderModel(provider, model)
-                          }}
+                          onChange={() => onSelectProviderModel(provider, model)}
                         />
                         <span>{model}</span>
                       </label>
-
-                      {isCustomOption ? (
+                      {customOptions.includes(model) && (
                         <button
                           type="button"
-                          className="settings-provider-card__model-remove"
-                          onClick={() => {
-                            onRemoveCustomModelOption(provider, model)
-                          }}
+                          className="secondary"
+                          style={{ padding: '2px 8px', fontSize: '11px' }}
+                          onClick={() => onRemoveCustomModelOption(provider, model)}
                         >
                           Remove
                         </button>
-                      ) : null}
+                      )}
                     </div>
-                  )
-                })
-              )}
-            </div>
+                  ))}
+                </div>
 
-            <div className="settings-provider-card__add-row">
-              <input
-                type="text"
-                data-testid={`settings-custom-model-add-input-${provider}`}
-                value={addInputValue}
-                placeholder={addInputPlaceholder}
-                onChange={event => {
-                  onChangeAddModelInput(provider, event.target.value)
-                }}
-                onKeyDown={event => {
-                  if (event.key !== 'Enter') {
-                    return
-                  }
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px', width: '100%' }}>
+                  <input
+                    type="text"
+                    style={{ flex: 1 }}
+                    value={addInputValue}
+                    placeholder="Add model..."
+                    onChange={event => onChangeAddModelInput(provider, event.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && onAddCustomModelOption(provider)}
+                  />
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={addInputValue.trim().length === 0}
+                    onClick={() => onAddCustomModelOption(provider)}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
 
-                  event.preventDefault()
-                  onAddCustomModelOption(provider)
-                }}
-              />
-              <button
-                type="button"
-                data-testid={`settings-custom-model-add-button-${provider}`}
-                disabled={addInputValue.trim().length === 0}
-                onClick={() => {
-                  onAddCustomModelOption(provider)
-                }}
-              >
-                Add
-              </button>
-            </div>
-
-            <div className="settings-provider-card__meta">
-              <span>
-                Source: {modelCatalog.source ?? 'N/A'} · {modelCatalog.models.length} models
-              </span>
-              {modelCatalog.error ? (
-                <span className="settings-provider-card__error">Error: {modelCatalog.error}</span>
-              ) : modelCatalog.fetchedAt ? (
-                <span>Updated: {new Date(modelCatalog.fetchedAt).toLocaleTimeString()}</span>
-              ) : (
-                <span>Waiting for first fetch...</span>
-              )}
-            </div>
-          </article>
+            {modelCatalog.error && (
+              <div style={{ marginTop: '12px', fontSize: '11px', color: '#ff4d4d' }}>
+                Error: {modelCatalog.error}
+              </div>
+            )}
+          </div>
         )
       })}
     </div>

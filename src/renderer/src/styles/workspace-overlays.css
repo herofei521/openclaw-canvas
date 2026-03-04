@@ -4,10 +4,13 @@
   position: fixed;
   z-index: 10;
   padding: 6px;
-  border: 1px solid rgba(113, 148, 245, 0.6);
-  border-radius: 10px;
-  background: rgba(9, 16, 30, 0.94);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--cove-border-subtle);
+  border-radius: 12px;
+  background: var(--cove-surface-strong);
+  backdrop-filter: blur(24px) saturate(150%);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.2),
+    0 24px 38px 3px rgba(0, 0, 0, 0.25);
   min-width: 170px;
   display: flex;
   flex-direction: column;
@@ -22,24 +25,27 @@
   gap: 10px;
   border: none;
   background: transparent;
-  color: #e8f1ff;
+  color: var(--cove-text);
   border-radius: 8px;
   padding: 8px 10px;
   cursor: pointer;
   font-size: calc(13px * var(--cove-ui-font-scale));
   line-height: 1.2;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .workspace-context-menu button:hover {
-  background: rgba(84, 123, 238, 0.28);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .workspace-context-menu button:active {
-  background: rgba(84, 123, 238, 0.35);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .workspace-context-menu button:focus-visible {
-  outline: 2px solid rgba(140, 210, 255, 0.88);
+  outline: 2px solid rgba(94, 156, 255, 0.85);
   outline-offset: 2px;
 }
 
@@ -47,7 +53,16 @@
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
-  color: rgba(216, 232, 255, 0.9);
+  color: var(--cove-text-muted);
+  opacity: 0.6;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.workspace-context-menu button:hover .workspace-context-menu__icon {
+  opacity: 1;
+  transform: translateX(1px);
 }
 
 .workspace-context-menu__label {
@@ -59,15 +74,16 @@
   top: 12px;
   right: 12px;
   z-index: 8;
-  border: 1px solid rgba(120, 158, 255, 0.45);
-  border-radius: 9px;
-  background: rgba(15, 24, 44, 0.88);
-  color: #c8dafb;
+  border: 1px solid var(--cove-border-subtle);
+  border-radius: 10px;
+  background: rgba(18, 18, 18, 0.72);
+  backdrop-filter: blur(18px) saturate(130%);
+  color: var(--cove-text-muted);
   font-size: calc(12px * var(--cove-ui-font-scale));
   line-height: 1.35;
   padding: 6px 10px;
   pointer-events: none;
-  box-shadow: 0 8px 20px rgba(3, 7, 16, 0.45);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
 .workspace-space-region {

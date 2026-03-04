@@ -10,63 +10,53 @@ export function TaskTagsSection(props: {
   const { tags, addTaskTagInput, onChangeAddTaskTagInput, onAddTag, onRemoveTag } = props
 
   return (
-    <div className="settings-panel__section" id="settings-section-task-tags">
-      <h3>Task Tags</h3>
+    <div
+      className="settings-panel__section settings-panel__section--vertical"
+      id="settings-section-task-tags"
+    >
+      <h3 className="settings-panel__section-title">Task Tags</h3>
 
-      <div className="settings-provider-card__model-list" data-testid="settings-task-tag-list">
-        {tags.map(tag => (
-          <div className="settings-provider-card__model-item" key={tag}>
-            <span className="settings-provider-card__model-radio">
-              <span>{tag}</span>
-            </span>
-            <button
-              type="button"
-              className="settings-provider-card__model-remove"
-              data-testid={`settings-task-tag-remove-${tag}`}
-              disabled={tags.length <= 1}
-              onClick={() => {
-                onRemoveTag(tag)
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+      <div className="settings-panel__row">
+        <div className="settings-panel__row-label" style={{ marginBottom: '8px' }}>
+          <span>Common tags used to categorize and filter tasks.</span>
+        </div>
+
+        <div className="settings-list-container">
+          {tags.map(tag => (
+            <div className="settings-list-item" key={tag}>
+              <span style={{ fontSize: '13px', color: '#ccc' }}>{tag}</span>
+              <button
+                type="button"
+                className="secondary"
+                style={{ padding: '2px 8px', fontSize: '11px' }}
+                disabled={tags.length <= 1}
+                onClick={() => onRemoveTag(tag)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', width: '100%' }}>
+          <input
+            type="text"
+            style={{ flex: 1 }}
+            value={addTaskTagInput}
+            placeholder="Add new tag..."
+            onChange={event => onChangeAddTaskTagInput(event.target.value)}
+            onKeyDown={e => e.key === 'Enter' && onAddTag()}
+          />
+          <button
+            type="button"
+            className="primary"
+            disabled={addTaskTagInput.trim().length === 0}
+            onClick={() => onAddTag()}
+          >
+            Add
+          </button>
+        </div>
       </div>
-
-      <div className="settings-provider-card__add-row">
-        <input
-          type="text"
-          data-testid="settings-task-tag-add-input"
-          value={addTaskTagInput}
-          placeholder="Example: perf"
-          onChange={event => {
-            onChangeAddTaskTagInput(event.target.value)
-          }}
-          onKeyDown={event => {
-            if (event.key !== 'Enter') {
-              return
-            }
-
-            event.preventDefault()
-            onAddTag()
-          }}
-        />
-        <button
-          type="button"
-          data-testid="settings-task-tag-add-button"
-          disabled={addTaskTagInput.trim().length === 0}
-          onClick={() => {
-            onAddTag()
-          }}
-        >
-          Add
-        </button>
-      </div>
-
-      <p className="settings-panel__hint">
-        Tasks can only select from this list; AI generation also picks from this list.
-      </p>
     </div>
   )
 }

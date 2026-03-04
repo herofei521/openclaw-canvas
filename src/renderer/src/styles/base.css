@@ -6,6 +6,16 @@
 
 :root {
   --cove-ui-font-scale: 1;
+  --cove-accent: #5e9cff;
+  --cove-surface: rgba(10, 10, 10, 0.7);
+  --cove-surface-strong: rgba(18, 18, 18, 0.85);
+  --cove-surface-hover: rgba(255, 255, 255, 0.08);
+  --cove-field: rgba(255, 255, 255, 0.04);
+  --cove-border: rgba(255, 255, 255, 0.12);
+  --cove-border-subtle: rgba(255, 255, 255, 0.08);
+  --cove-text: rgba(255, 255, 255, 0.92);
+  --cove-text-muted: rgba(255, 255, 255, 0.6);
+  --cove-text-faint: rgba(255, 255, 255, 0.4);
 }
 
 html,

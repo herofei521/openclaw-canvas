@@ -242,30 +242,23 @@ export default function App(): React.JSX.Element {
     )
   }, [])
 
-  const handleWorkspaceWorktreesRootChange = useCallback(
-    (worktreesRoot: string): void => {
-      const { activeWorkspaceId, setWorkspaces } = useAppStore.getState()
-      if (!activeWorkspaceId) {
-        return
-      }
-
+  const handleAnyWorkspaceWorktreesRootChange = useCallback(
+    (workspaceId: string, worktreesRoot: string): void => {
+      const { setWorkspaces } = useAppStore.getState()
       setWorkspaces(previous =>
         previous.map(workspace => {
-          if (workspace.id !== activeWorkspaceId) {
+          if (workspace.id !== workspaceId) {
             return workspace
           }
-
           if (workspace.worktreesRoot === worktreesRoot) {
             return workspace
           }
-
           return {
             ...workspace,
             worktreesRoot,
           }
         }),
       )
-
       requestPersistFlush()
     },
     [requestPersistFlush],
@@ -438,11 +431,9 @@ export default function App(): React.JSX.Element {
         <SettingsPanel
           settings={agentSettings}
           modelCatalogByProvider={providerModelCatalog}
-          activeWorkspaceName={activeWorkspace?.name ?? null}
-          activeWorkspacePath={activeWorkspace?.path ?? null}
-          activeWorkspaceWorktreesRoot={activeWorkspace?.worktreesRoot ?? ''}
-          onChangeActiveWorkspaceWorktreesRoot={worktreesRoot => {
-            handleWorkspaceWorktreesRootChange(worktreesRoot)
+          workspaces={workspaces}
+          onWorkspaceWorktreesRootChange={(id, root) => {
+            handleAnyWorkspaceWorktreesRootChange(id, root)
           }}
           onRefreshProviderModels={provider => {
             void refreshProviderModels(provider)

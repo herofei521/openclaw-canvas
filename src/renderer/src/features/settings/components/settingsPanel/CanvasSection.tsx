@@ -37,101 +37,98 @@ export function CanvasSection(props: {
 
   return (
     <div className="settings-panel__section" id="settings-section-canvas">
-      <h3>Canvas Interaction</h3>
+      <h3 className="settings-panel__section-title">Canvas & UI</h3>
+
       <div className="settings-panel__row">
-        <span>Input Mode</span>
-        <select
-          id="settings-canvas-input-mode"
-          data-testid="settings-canvas-input-mode"
-          value={canvasInputMode}
-          onChange={event => {
-            onChangeCanvasInputMode(event.target.value as CanvasInputMode)
-          }}
-        >
-          {CANVAS_INPUT_MODES.map(mode => (
-            <option key={mode} value={mode}>
-              {mode === 'auto'
-                ? 'Auto (Detect from gestures)'
-                : mode === 'trackpad'
-                  ? 'Trackpad (Drag selects)'
-                  : 'Mouse (Shift+Drag selects)'}
-            </option>
-          ))}
-        </select>
+        <div className="settings-panel__row-label">
+          <strong>Input Mode</strong>
+          <span>How interactions are handled on the canvas.</span>
+        </div>
+        <div className="settings-panel__control">
+          <select
+            id="settings-canvas-input-mode"
+            data-testid="settings-canvas-input-mode"
+            value={canvasInputMode}
+            onChange={event => onChangeCanvasInputMode(event.target.value as CanvasInputMode)}
+          >
+            {CANVAS_INPUT_MODES.map(mode => (
+              <option key={mode} value={mode}>
+                {mode === 'auto' ? 'Auto (Smart)' : mode === 'trackpad' ? 'Trackpad' : 'Mouse'}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
       <div className="settings-panel__row">
-        <span>Default Terminal/Agent Window Size</span>
-        <div className="settings-panel__number-control">
+        <div className="settings-panel__row-label">
+          <strong>Initial Window Size</strong>
+        </div>
+        <div className="settings-panel__control" style={{ alignItems: 'center', gap: '8px' }}>
           <input
-            id="settings-default-terminal-window-size"
-            data-testid="settings-default-terminal-window-size"
+            style={{ width: '80px' }}
             type="number"
             min={MIN_DEFAULT_TERMINAL_WINDOW_SCALE_PERCENT}
             max={MAX_DEFAULT_TERMINAL_WINDOW_SCALE_PERCENT}
-            step={1}
             value={defaultTerminalWindowScalePercent}
-            onChange={event => {
-              const next = Number(event.target.value)
-              onChangeDefaultTerminalWindowScalePercent(next)
-            }}
+            onChange={event =>
+              onChangeDefaultTerminalWindowScalePercent(Number(event.target.value))
+            }
           />
-          <span>%</span>
+          <span style={{ fontSize: '12px', color: '#666' }}>%</span>
         </div>
       </div>
+
       <div className="settings-panel__row">
-        <span>Terminal Font Size</span>
-        <div className="settings-panel__number-control">
+        <div className="settings-panel__row-label">
+          <strong>Terminal Font Size</strong>
+        </div>
+        <div className="settings-panel__control" style={{ alignItems: 'center', gap: '8px' }}>
           <input
-            id="settings-terminal-font-size"
-            data-testid="settings-terminal-font-size"
+            style={{ width: '80px' }}
             type="number"
             min={MIN_TERMINAL_FONT_SIZE}
             max={MAX_TERMINAL_FONT_SIZE}
-            step={1}
             value={terminalFontSize}
-            onChange={event => {
-              const next = Number(event.target.value)
-              onChangeTerminalFontSize(next)
-            }}
+            onChange={event => onChangeTerminalFontSize(Number(event.target.value))}
           />
-          <span>px</span>
+          <span style={{ fontSize: '12px', color: '#666' }}>px</span>
         </div>
       </div>
+
       <div className="settings-panel__row">
-        <span>Interface Font Size</span>
-        <div className="settings-panel__number-control">
+        <div className="settings-panel__row-label">
+          <strong>Interface Font Size</strong>
+        </div>
+        <div className="settings-panel__control" style={{ alignItems: 'center', gap: '8px' }}>
           <input
-            id="settings-ui-font-size"
-            data-testid="settings-ui-font-size"
+            style={{ width: '80px' }}
             type="number"
             min={MIN_UI_FONT_SIZE}
             max={MAX_UI_FONT_SIZE}
-            step={1}
             value={uiFontSize}
-            onChange={event => {
-              const next = Number(event.target.value)
-              onChangeUiFontSize(next)
-            }}
+            onChange={event => onChangeUiFontSize(Number(event.target.value))}
           />
-          <span>px</span>
+          <span style={{ fontSize: '12px', color: '#666' }}>px</span>
         </div>
       </div>
-      <label className="settings-provider-card__toggle">
-        <input
-          id="settings-normalize-zoom-on-terminal-click"
-          data-testid="settings-normalize-zoom-on-terminal-click"
-          type="checkbox"
-          checked={normalizeZoomOnTerminalClick}
-          onChange={event => {
-            onChangeNormalizeZoomOnTerminalClick(event.target.checked)
-          }}
-        />
-        <span>Click terminal auto-zooms canvas to 100%</span>
-      </label>
-      <p className="settings-panel__hint">
-        Auto mode infers trackpad vs mouse from wheel and pinch input. Window size applies to new
-        terminal/agent nodes.
-      </p>
+
+      <div className="settings-panel__row">
+        <div className="settings-panel__row-label">
+          <strong>Auto-zoom on Click</strong>
+          <span>Zoom to 100% when a terminal is clicked.</span>
+        </div>
+        <div className="settings-panel__control">
+          <label className="cove-toggle">
+            <input
+              type="checkbox"
+              checked={normalizeZoomOnTerminalClick}
+              onChange={event => onChangeNormalizeZoomOnTerminalClick(event.target.checked)}
+            />
+            <span className="cove-toggle__slider"></span>
+          </label>
+        </div>
+      </div>
     </div>
   )
 }

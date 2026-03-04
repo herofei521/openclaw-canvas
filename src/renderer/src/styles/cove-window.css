@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   z-index: 24;
-  background: rgba(5, 10, 20, 0.58);
+  background: rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
   backdrop-filter: blur(4px);
@@ -12,14 +12,11 @@
 .cove-window,
 .workspace-task-creator {
   width: min(680px, calc(100vw - 48px));
-  border: 1px solid rgba(139, 171, 255, 0.45);
+  border: 1px solid var(--cove-border-subtle);
   border-radius: 16px;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(84, 122, 228, 0.2), transparent 42%),
-    linear-gradient(180deg, rgba(13, 21, 40, 0.98) 0%, rgba(9, 15, 29, 0.98) 100%);
-  box-shadow:
-    0 24px 56px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(164, 196, 255, 0.16);
+  background: var(--cove-surface);
+  backdrop-filter: blur(20px) saturate(130%);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.55);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -30,15 +27,15 @@
 .workspace-task-creator h3 {
   font-size: calc(18px * var(--cove-ui-font-scale));
   font-weight: 600;
-  color: #f0f6ff;
+  color: var(--cove-text);
 }
 
 .cove-window__meta,
 .workspace-task-creator__meta {
   font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #a8c0ea;
+  color: var(--cove-text-faint);
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(102, 137, 221, 0.26);
+  border-bottom: 1px solid var(--cove-border-subtle);
 }
 
 .cove-window__field-row,
@@ -51,7 +48,7 @@
 .cove-window__field-row label,
 .workspace-task-creator__field-row label {
   font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #c6d8fb;
+  color: var(--cove-text-muted);
   font-weight: 500;
 }
 
@@ -61,16 +58,18 @@
 .workspace-task-creator__field-row input,
 .workspace-task-creator__field-row textarea,
 .workspace-task-creator__field-row select {
-  border: 1px solid rgba(98, 133, 226, 0.55);
-  background: rgba(9, 17, 33, 0.88);
-  color: #eaf2ff;
+  border: 1px solid var(--cove-border);
+  background: var(--cove-field);
+  color: var(--cove-text);
   border-radius: 10px;
   padding: 9px 11px;
   font-size: calc(13px * var(--cove-ui-font-scale));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition:
+    background-color 0.18s ease,
     border-color 0.18s ease,
     box-shadow 0.18s ease,
-    background 0.18s ease;
+    color 0.18s ease;
 }
 
 .cove-window__field-row input:focus,
@@ -80,9 +79,9 @@
 .workspace-task-creator__field-row textarea:focus,
 .workspace-task-creator__field-row select:focus {
   outline: none;
-  border-color: rgba(134, 168, 255, 0.9);
-  box-shadow: 0 0 0 3px rgba(96, 141, 255, 0.2);
-  background: rgba(12, 23, 45, 0.95);
+  border-color: var(--cove-accent);
+  box-shadow: 0 0 0 1px var(--cove-accent);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .cove-window__field-row textarea,
@@ -103,15 +102,15 @@
   align-items: center;
   gap: 7px;
   font-size: calc(12px * var(--cove-ui-font-scale));
-  color: #bfd2f7;
+  color: var(--cove-text-muted);
 }
 
 .cove-window__error,
 .workspace-task-creator__error {
   font-size: calc(12px * var(--cove-ui-font-scale));
   color: #ffbaba;
-  background: rgba(97, 24, 35, 0.28);
-  border: 1px solid rgba(173, 58, 79, 0.4);
+  background: rgba(97, 24, 35, 0.22);
+  border: 1px solid rgba(255, 120, 144, 0.28);
   border-radius: 10px;
   padding: 8px 10px;
 }
@@ -152,14 +151,14 @@
 
 .cove-window__action--ghost,
 .workspace-task-creator__action--ghost {
-  border: 1px solid rgba(101, 133, 212, 0.45);
-  background: rgba(17, 29, 54, 0.72);
-  color: #d2e4ff;
+  border: 1px solid var(--cove-border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cove-text);
 }
 
 .cove-window__action--ghost:hover:not(:disabled),
 .workspace-task-creator__action--ghost:hover:not(:disabled) {
-  background: rgba(34, 52, 90, 0.86);
+  background: var(--cove-surface-hover);
 }
 
 .workspace-task-creator__action--advanced-toggle {
@@ -168,14 +167,14 @@
 
 .cove-window__action--secondary,
 .workspace-task-creator__action--secondary {
-  border: 1px solid rgba(94, 160, 255, 0.55);
-  background: rgba(40, 69, 125, 0.46);
-  color: #d9ebff;
+  border: 1px solid var(--cove-border-subtle);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cove-text);
 }
 
 .cove-window__action--secondary:hover:not(:disabled),
 .workspace-task-creator__action--secondary:hover:not(:disabled) {
-  background: rgba(56, 93, 167, 0.58);
+  background: var(--cove-surface-hover);
 }
 
 .cove-window__action--primary,
