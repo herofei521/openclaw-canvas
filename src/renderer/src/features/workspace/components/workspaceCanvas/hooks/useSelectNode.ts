@@ -10,12 +10,15 @@ type SetNodes = (
 export function useWorkspaceCanvasSelectNode({
   setNodes,
   setSelectedNodeIds,
+  setSelectedSpaceIds,
 }: {
   setNodes: SetNodes
   setSelectedNodeIds: React.Dispatch<React.SetStateAction<string[]>>
+  setSelectedSpaceIds: React.Dispatch<React.SetStateAction<string[]>>
 }): (nodeId: string) => void {
   return useCallback(
     (nodeId: string) => {
+      let didUpdateSelection = false
       setNodes(
         prevNodes => {
           const isAlreadySelected = prevNodes.some(node => node.id === nodeId && node.selected)
@@ -23,6 +26,7 @@ export function useWorkspaceCanvasSelectNode({
             return prevNodes
           }
 
+          didUpdateSelection = true
           let hasChanged = false
           const nextNodes = prevNodes.map(node => {
             const shouldSelect = node.id === nodeId
@@ -42,6 +46,11 @@ export function useWorkspaceCanvasSelectNode({
         { syncLayout: false },
       )
 
+      if (!didUpdateSelection) {
+        return
+      }
+
+      setSelectedSpaceIds([])
       setSelectedNodeIds(previous => {
         if (previous.includes(nodeId)) {
           return previous
@@ -50,6 +59,6 @@ export function useWorkspaceCanvasSelectNode({
         return [nodeId]
       })
     },
-    [setNodes, setSelectedNodeIds],
+    [setNodes, setSelectedNodeIds, setSelectedSpaceIds],
   )
 }

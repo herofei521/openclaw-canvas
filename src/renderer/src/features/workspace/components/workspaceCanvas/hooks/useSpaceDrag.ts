@@ -15,6 +15,7 @@ interface UseSpaceDragParams {
   reactFlow: ReactFlowInstance<Node<TerminalNodeData>>
   nodesRef: React.MutableRefObject<Node<TerminalNodeData>[]>
   spacesRef: React.MutableRefObject<WorkspaceSpaceState[]>
+  selectedNodeIdsRef: React.MutableRefObject<string[]>
   setNodes: (
     updater: (prevNodes: Node<TerminalNodeData>[]) => Node<TerminalNodeData>[],
     options?: { syncLayout?: boolean },
@@ -31,6 +32,7 @@ export function useWorkspaceCanvasSpaceDrag({
   reactFlow,
   nodesRef,
   spacesRef,
+  selectedNodeIdsRef,
   setNodes,
   onSpacesChange,
   onRequestPersistFlush,
@@ -42,6 +44,7 @@ export function useWorkspaceCanvasSpaceDrag({
   handleSpaceDragHandlePointerDown: (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>,
     spaceId: string,
+    options?: { mode?: 'auto' | 'region' },
   ) => void
 } {
   const [spaceFramePreview, setSpaceFramePreview] = useState<{
@@ -332,6 +335,7 @@ export function useWorkspaceCanvasSpaceDrag({
     (
       event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>,
       spaceId: string,
+      options?: { mode?: 'auto' | 'region' },
     ) => {
       if (event.button !== 0) {
         return
@@ -355,21 +359,34 @@ export function useWorkspaceCanvasSpaceDrag({
       })
 
       const zoom = reactFlow.getZoom()
-      const handle: SpaceFrameHandle = resolveSpaceFrameHandle({
+      let handle: SpaceFrameHandle = resolveSpaceFrameHandle({
         rect: targetSpace.rect,
         point: startFlow,
         zoom,
       })
 
-      const movableNodes =
-        handle.kind === 'move'
-          ? targetSpace.nodeIds
-              .map(nodeId => nodesRef.current.find(node => node.id === nodeId))
-              .filter((node): node is Node<TerminalNodeData> => Boolean(node))
-          : []
-      if (handle.kind === 'move' && movableNodes.length === 0) {
-        return
+      const mode = options?.mode ?? 'auto'
+      if (mode === 'region' && handle.kind === 'resize') {
+        const edgeCount = Object.keys(handle.edges).length
+        if (edgeCount <= 1) {
+          handle = { kind: 'move' }
+        }
       }
+
+      const movableNodes = (() => {
+        if (handle.kind !== 'move') {
+          return []
+        }
+
+        const movableNodeIds = new Set<string>([
+          ...targetSpace.nodeIds,
+          ...selectedNodeIdsRef.current,
+        ])
+
+        return [...movableNodeIds]
+          .map(nodeId => nodesRef.current.find(node => node.id === nodeId))
+          .filter((node): node is Node<TerminalNodeData> => Boolean(node))
+      })()
 
       const ownedBounds =
         handle.kind === 'resize'
@@ -427,7 +444,15 @@ export function useWorkspaceCanvasSpaceDrag({
       cancelSpaceRename()
       setEmptySelectionPrompt(null)
     },
-    [cancelSpaceRename, nodesRef, reactFlow, setContextMenu, setEmptySelectionPrompt, spacesRef],
+    [
+      cancelSpaceRename,
+      nodesRef,
+      reactFlow,
+      selectedNodeIdsRef,
+      setContextMenu,
+      setEmptySelectionPrompt,
+      spacesRef,
+    ],
   )
 
   return {

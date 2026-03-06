@@ -1,12 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import {
   AGENT_PROVIDERS,
-  MAX_DEFAULT_TERMINAL_WINDOW_SCALE_PERCENT,
-  MAX_TERMINAL_FONT_SIZE,
-  MAX_UI_FONT_SIZE,
-  MIN_DEFAULT_TERMINAL_WINDOW_SCALE_PERCENT,
-  MIN_TERMINAL_FONT_SIZE,
-  MIN_UI_FONT_SIZE,
   resolveTaskTitleProvider,
   type AgentProvider,
   type AgentSettings,
@@ -69,7 +63,7 @@ export function SettingsPanel({
 
   useEffect(() => {
     AGENT_PROVIDERS.forEach(provider => onRefreshProviderModels(provider))
-  }, [])
+  }, [onRefreshProviderModels])
 
   const updateDefaultProvider = (provider: AgentProvider): void =>
     onChange({ ...settings, defaultProvider: provider })
@@ -94,12 +88,16 @@ export function SettingsPanel({
 
   const removeTaskTagOption = (tag: string): void => {
     const nextTags = settings.taskTagOptions.filter(option => option !== tag)
-    if (nextTags.length > 0) updateTaskTagOptions(nextTags)
+    if (nextTags.length > 0) {
+      updateTaskTagOptions(nextTags)
+    }
   }
 
   const addTaskTagOption = (): void => {
     const candidate = addTaskTagInput.trim()
-    if (candidate.length === 0) return
+    if (candidate.length === 0) {
+      return
+    }
     const nextTags = settings.taskTagOptions.includes(candidate)
       ? settings.taskTagOptions
       : [...settings.taskTagOptions, candidate]
@@ -127,7 +125,9 @@ export function SettingsPanel({
 
   const removeCustomModelOption = (provider: AgentProvider, model: string): void => {
     const currentOptions = settings.customModelOptionsByProvider[provider]
-    if (!currentOptions.includes(model)) return
+    if (!currentOptions.includes(model)) {
+      return
+    }
     const nextOptions = currentOptions.filter(option => option !== model)
     onChange({
       ...settings,
@@ -150,7 +150,9 @@ export function SettingsPanel({
 
   const addCustomModelOption = (provider: AgentProvider): void => {
     const candidate = addModelInputByProvider[provider].trim()
-    if (candidate.length === 0) return
+    if (candidate.length === 0) {
+      return
+    }
     const existingOptions = settings.customModelOptionsByProvider[provider]
     const nextOptions = existingOptions.includes(candidate)
       ? existingOptions

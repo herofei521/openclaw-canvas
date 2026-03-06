@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Node } from '@xyflow/react'
 import type { TerminalNodeData } from '../../../src/renderer/src/features/workspace/types'
+import type { WorkspaceSpaceState } from '../../../src/renderer/src/features/workspace/types'
 
 vi.mock('@xyflow/react', () => {
   return {
@@ -59,6 +60,8 @@ describe('useWorkspaceCanvasApplyNodeChanges', () => {
       const [nodes, setNodes] = useState(initialNodes)
       const nodesRef = useRef(nodes)
       nodesRef.current = nodes
+      const spacesRef = useRef<WorkspaceSpaceState[]>([])
+      const selectedSpaceIdsRef = useRef<string[]>([])
 
       const apply = useWorkspaceCanvasApplyNodeChanges({
         nodesRef,
@@ -69,6 +72,10 @@ describe('useWorkspaceCanvasApplyNodeChanges', () => {
         normalizePosition: (_nodeId, desired) => desired,
         applyPendingScrollbacks: next => next,
         isNodeDraggingRef: useRef(false),
+        selectionDraftRef: useRef(null),
+        spacesRef,
+        selectedSpaceIdsRef,
+        onSpacesChange: () => undefined,
       })
 
       return (

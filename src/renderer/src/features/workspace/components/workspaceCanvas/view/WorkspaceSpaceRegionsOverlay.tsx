@@ -8,9 +8,11 @@ interface WorkspaceSpaceRegionsOverlayProps {
   workspacePath: string
   spaceVisuals: SpaceVisual[]
   spaceFramePreview: { spaceId: string; rect: WorkspaceSpaceRect } | null
+  selectedSpaceIds: string[]
   handleSpaceDragHandlePointerDown: (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>,
     spaceId: string,
+    options?: { mode?: 'auto' | 'region' },
   ) => void
   editingSpaceId: string | null
   spaceRenameInputRef: React.RefObject<HTMLInputElement>
@@ -26,6 +28,7 @@ export function WorkspaceSpaceRegionsOverlay({
   workspacePath,
   spaceVisuals,
   spaceFramePreview,
+  selectedSpaceIds,
   handleSpaceDragHandlePointerDown,
   editingSpaceId,
   spaceRenameInputRef,
@@ -36,6 +39,8 @@ export function WorkspaceSpaceRegionsOverlay({
   startSpaceRename,
   onOpenSpaceMenu,
 }: WorkspaceSpaceRegionsOverlayProps): React.JSX.Element {
+  const selectedSpaceIdSet = React.useMemo(() => new Set(selectedSpaceIds), [selectedSpaceIds])
+
   const normalizedWorkspacePath = React.useMemo(
     () => normalizeComparablePath(workspacePath),
     [workspacePath],
@@ -131,12 +136,30 @@ export function WorkspaceSpaceRegionsOverlay({
         return (
           <div
             key={space.id}
-            className="workspace-space-region"
+            className={
+              selectedSpaceIdSet.has(space.id)
+                ? 'workspace-space-region workspace-space-region--selected'
+                : 'workspace-space-region'
+            }
             style={{
               transform: `translate(${resolvedRect.x}px, ${resolvedRect.y}px)`,
               width: resolvedRect.width,
               height: resolvedRect.height,
             }}
+            onPointerDown={
+              selectedSpaceIdSet.has(space.id)
+                ? event => {
+                    handleSpaceDragHandlePointerDown(event, space.id, { mode: 'region' })
+                  }
+                : undefined
+            }
+            onMouseDown={
+              selectedSpaceIdSet.has(space.id)
+                ? event => {
+                    handleSpaceDragHandlePointerDown(event, space.id, { mode: 'region' })
+                  }
+                : undefined
+            }
           >
             <div
               className="workspace-space-region__drag-handle workspace-space-region__drag-handle--top"

@@ -130,9 +130,10 @@ export function SpaceWorktreeWindow({
   })
 
   const spaceIdentity = space?.id ?? null
+  const spaceDirectoryPath = space?.directoryPath ?? ''
 
   useEffect(() => {
-    if (!spaceId || !space) {
+    if (!spaceId || !spaceIdentity) {
       return
     }
 
@@ -153,8 +154,8 @@ export function SpaceWorktreeWindow({
     setGuard(null)
     setError(null)
 
-    void refresh({ preferredWorktreePath: space.directoryPath })
-  }, [refresh, spaceId, spaceIdentity])
+    void refresh({ preferredWorktreePath: spaceDirectoryPath })
+  }, [refresh, spaceDirectoryPath, spaceId, spaceIdentity])
 
   const queueGuardIfNeeded = useCallback(
     (pending: PendingOperation, label: string): boolean => {

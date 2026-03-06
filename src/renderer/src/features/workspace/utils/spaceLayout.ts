@@ -3,6 +3,7 @@ import type { WorkspaceSpaceRect } from '../types'
 export const SPACE_NODE_PADDING = 24
 export const SPACE_MIN_SIZE = { width: 120, height: 100 }
 export const SPACE_CORNER_HITBOX_PX = 18
+export const SPACE_EDGE_HITBOX_PX = 8
 export const SPACE_EDGE_RESIZE_MID_RATIO = 0.2
 
 export type SpaceFrameHandle =
@@ -43,6 +44,7 @@ export function resolveSpaceFrameHandle({
 }): SpaceFrameHandle {
   const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
   const cornerSize = SPACE_CORNER_HITBOX_PX / safeZoom
+  const edgeHitbox = SPACE_EDGE_HITBOX_PX / safeZoom
 
   const localX = point.x - rect.x
   const localY = point.y - rect.y
@@ -74,8 +76,13 @@ export function resolveSpaceFrameHandle({
 
   distances.sort((a, b) => a.dist - b.dist)
   const closestEdge = distances[0]?.edge ?? 'top'
+  const closestEdgeDist = distances[0]?.dist ?? Number.POSITIVE_INFINITY
 
   if (width <= 0 || height <= 0) {
+    return { kind: 'move' }
+  }
+
+  if (closestEdgeDist > edgeHitbox) {
     return { kind: 'move' }
   }
 

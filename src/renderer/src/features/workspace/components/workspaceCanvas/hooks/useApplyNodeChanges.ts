@@ -5,7 +5,8 @@ import {
   type NodeChange,
   type NodePositionChange,
 } from '@xyflow/react'
-import type { TerminalNodeData } from '../../../types'
+import type { TerminalNodeData, WorkspaceSpaceState } from '../../../types'
+import type { SelectionDraftState } from '../types'
 
 interface UseApplyNodeChangesParams {
   nodesRef: MutableRefObject<Node<TerminalNodeData>[]>
@@ -18,6 +19,10 @@ interface UseApplyNodeChangesParams {
   ) => { x: number; y: number }
   applyPendingScrollbacks: (targetNodes: Node<TerminalNodeData>[]) => Node<TerminalNodeData>[]
   isNodeDraggingRef: MutableRefObject<boolean>
+  selectionDraftRef: MutableRefObject<SelectionDraftState | null>
+  spacesRef: MutableRefObject<WorkspaceSpaceState[]>
+  selectedSpaceIdsRef: MutableRefObject<string[]>
+  onSpacesChange: (spaces: WorkspaceSpaceState[]) => void
 }
 
 export function useWorkspaceCanvasApplyNodeChanges({
@@ -27,16 +32,25 @@ export function useWorkspaceCanvasApplyNodeChanges({
   normalizePosition,
   applyPendingScrollbacks,
   isNodeDraggingRef,
+  selectionDraftRef,
+  spacesRef,
+  selectedSpaceIdsRef,
+  onSpacesChange,
 }: UseApplyNodeChangesParams): (changes: NodeChange<Node<TerminalNodeData>>[]) => void {
   return useCallback(
     (changes: NodeChange<Node<TerminalNodeData>>[]) => {
-      if (!changes.length) {
+      const filteredChanges =
+        selectionDraftRef.current !== null
+          ? changes.filter(change => change.type !== 'select')
+          : changes
+
+      if (!filteredChanges.length) {
         return
       }
 
       const currentNodes = nodesRef.current
       const removedIds = new Set(
-        changes.filter(change => change.type === 'remove').map(change => change.id),
+        filteredChanges.filter(change => change.type === 'remove').map(change => change.id),
       )
 
       if (removedIds.size > 0) {
@@ -56,14 +70,20 @@ export function useWorkspaceCanvasApplyNodeChanges({
       }
 
       const survivingNodes = currentNodes.filter(node => !removedIds.has(node.id))
-      const nonRemoveChanges = changes.filter(change => change.type !== 'remove')
+      const nonRemoveChanges = filteredChanges.filter(change => change.type !== 'remove')
 
       let nextNodes = applyNodeChanges<Node<TerminalNodeData>>(nonRemoveChanges, survivingNodes)
 
-      const settledPositionChanges: NodePositionChange[] = changes.filter(
+      const positionChanges = filteredChanges.filter(
+        (change): change is NodePositionChange =>
+          change.type === 'position' && !removedIds.has(change.id),
+      )
+      const isDraggingThisFrame = positionChanges.some(change => change.dragging !== false)
+
+      const settledPositionChanges: NodePositionChange[] = filteredChanges.filter(
         (change): change is NodePositionChange =>
           change.type === 'position' &&
-          !change.dragging &&
+          change.dragging === false &&
           change.position !== undefined &&
           !removedIds.has(change.id),
       )
@@ -87,9 +107,102 @@ export function useWorkspaceCanvasApplyNodeChanges({
         })
       }
 
-      const positionChanges = changes.filter(change => change.type === 'position')
+      const anchorChange = positionChanges.find(change => change.position !== undefined) ?? null
+      const hasSelectedSpaces = selectedSpaceIdsRef.current.length > 0
+      const shouldSyncSelectedSpaces = hasSelectedSpaces && anchorChange !== null
+
+      if (shouldSyncSelectedSpaces) {
+        const prevAnchor = currentNodes.find(node => node.id === anchorChange.id) ?? null
+        const nextAnchor = nextNodes.find(node => node.id === anchorChange.id) ?? null
+
+        if (prevAnchor && nextAnchor) {
+          const dx = nextAnchor.position.x - prevAnchor.position.x
+          const dy = nextAnchor.position.y - prevAnchor.position.y
+
+          if (dx !== 0 || dy !== 0) {
+            const selectedSpaceIdSet = new Set(selectedSpaceIdsRef.current)
+            const previousSpaces = spacesRef.current
+            const movedSpaceIds = new Set<string>()
+            let hasSpaceMoved = false
+
+            const nextSpaces = previousSpaces.map(space => {
+              if (!selectedSpaceIdSet.has(space.id) || !space.rect) {
+                return space
+              }
+
+              movedSpaceIds.add(space.id)
+
+              const nextRect = {
+                ...space.rect,
+                x: space.rect.x + dx,
+                y: space.rect.y + dy,
+              }
+
+              if (
+                nextRect.x === space.rect.x &&
+                nextRect.y === space.rect.y &&
+                nextRect.width === space.rect.width &&
+                nextRect.height === space.rect.height
+              ) {
+                return space
+              }
+
+              hasSpaceMoved = true
+              return {
+                ...space,
+                rect: nextRect,
+              }
+            })
+
+            if (hasSpaceMoved) {
+              spacesRef.current = nextSpaces
+              onSpacesChange(nextSpaces)
+            }
+
+            const draggedNodeIds = new Set(positionChanges.map(change => change.id))
+            const ownedNodeIdsToShift = new Set<string>()
+
+            for (const space of previousSpaces) {
+              if (!movedSpaceIds.has(space.id)) {
+                continue
+              }
+
+              for (const nodeId of space.nodeIds) {
+                if (draggedNodeIds.has(nodeId)) {
+                  continue
+                }
+
+                ownedNodeIdsToShift.add(nodeId)
+              }
+            }
+
+            if (ownedNodeIdsToShift.size > 0) {
+              nextNodes = nextNodes.map(node => {
+                if (!ownedNodeIdsToShift.has(node.id)) {
+                  return node
+                }
+
+                const nextPosition = {
+                  x: node.position.x + dx,
+                  y: node.position.y + dy,
+                }
+
+                if (node.position.x === nextPosition.x && node.position.y === nextPosition.y) {
+                  return node
+                }
+
+                return {
+                  ...node,
+                  position: nextPosition,
+                }
+              })
+            }
+          }
+        }
+      }
+
       if (positionChanges.length > 0) {
-        isNodeDraggingRef.current = positionChanges.some(change => change.dragging)
+        isNodeDraggingRef.current = isDraggingThisFrame
       }
 
       if (!isNodeDraggingRef.current) {
@@ -142,13 +255,13 @@ export function useWorkspaceCanvasApplyNodeChanges({
         })
       }
 
-      const shouldSyncLayout = changes.some(change => {
+      const shouldSyncLayout = filteredChanges.some(change => {
         if (change.type === 'remove') {
           return true
         }
 
         if (change.type === 'position') {
-          return !change.dragging
+          return change.dragging === false
         }
 
         return change.type !== 'select'
@@ -167,6 +280,10 @@ export function useWorkspaceCanvasApplyNodeChanges({
       nodesRef,
       normalizePosition,
       onNodesChange,
+      onSpacesChange,
+      selectedSpaceIdsRef,
+      selectionDraftRef,
+      spacesRef,
     ],
   )
 }

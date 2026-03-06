@@ -71,9 +71,11 @@ interface WorkspaceCanvasViewProps {
 
   spaceVisuals: SpaceVisual[]
   spaceFramePreview: { spaceId: string; rect: WorkspaceSpaceRect } | null
+  selectedSpaceIds: string[]
   handleSpaceDragHandlePointerDown: (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>,
     spaceId: string,
+    options?: { mode?: 'auto' | 'region' },
   ) => void
   editingSpaceId: string | null
   spaceRenameInputRef: React.RefObject<HTMLInputElement>
@@ -179,6 +181,7 @@ export function WorkspaceCanvasView({
   isShiftPressed,
   spaceVisuals,
   spaceFramePreview,
+  selectedSpaceIds,
   handleSpaceDragHandlePointerDown,
   editingSpaceId,
   spaceRenameInputRef,
@@ -285,6 +288,7 @@ export function WorkspaceCanvasView({
           workspacePath={workspacePath}
           spaceVisuals={spaceVisuals}
           spaceFramePreview={spaceFramePreview}
+          selectedSpaceIds={selectedSpaceIds}
           handleSpaceDragHandlePointerDown={handleSpaceDragHandlePointerDown}
           editingSpaceId={editingSpaceId}
           spaceRenameInputRef={spaceRenameInputRef}

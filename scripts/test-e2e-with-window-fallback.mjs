@@ -29,6 +29,15 @@ function hasCrashSignature(output) {
   return CRASH_SIGNATURE_PATTERNS.some(pattern => pattern.test(output))
 }
 
+function writeStderr(message) {
+  process.stderr.write(`${message}\n`)
+}
+
+function writeError(error) {
+  const message = error instanceof Error ? (error.stack ?? error.message) : String(error)
+  writeStderr(message)
+}
+
 function runCommand(args, env = process.env) {
   return new Promise((resolve, reject) => {
     const child = spawn(pnpmCommand, args, {
@@ -84,8 +93,8 @@ async function main() {
     process.exit(firstRun.code)
   }
 
-  console.warn(
-    '\n[e2e-fallback] Detected crash-like failure in hidden mode. Rerunning last failed tests with COVE_E2E_WINDOW_MODE=offscreen...\n',
+  writeStderr(
+    '[e2e-fallback] Detected crash-like failure in hidden mode. Rerunning last failed tests with COVE_E2E_WINDOW_MODE=offscreen...',
   )
 
   const fallbackRun = await runCommand(['exec', 'playwright', 'test', '--last-failed'], {
@@ -94,8 +103,8 @@ async function main() {
   })
 
   if (fallbackRun.code === 0) {
-    console.warn(
-      '\n[e2e-fallback] Recovered by running failed tests in offscreen mode. Investigate hidden-mode compatibility for long-term fix.\n',
+    writeStderr(
+      '[e2e-fallback] Recovered by running failed tests in offscreen mode. Investigate hidden-mode compatibility for long-term fix.',
     )
     process.exit(0)
   }
@@ -104,6 +113,6 @@ async function main() {
 }
 
 void main().catch(error => {
-  console.error(error)
+  writeError(error)
   process.exit(1)
 })

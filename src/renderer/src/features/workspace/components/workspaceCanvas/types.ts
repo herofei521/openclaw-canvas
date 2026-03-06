@@ -54,6 +54,8 @@ export interface SelectionDraftState {
   currentY: number
   additive: boolean
   selectedNodeIdsAtStart: string[]
+  selectedSpaceIdsAtStart: string[]
+  startSpaceId: string | null
 }
 
 export interface EmptySelectionPromptState {

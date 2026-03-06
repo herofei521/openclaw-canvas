@@ -33,6 +33,10 @@ describe('spaceLayout', () => {
       edges: { top: true },
     })
 
+    expect(resolveSpaceFrameHandle({ rect, point: { x: 100, y: 60 }, zoom: 1 })).toEqual({
+      kind: 'move',
+    })
+
     expect(resolveSpaceFrameHandle({ rect, point: { x: 30, y: 0 }, zoom: 1 })).toEqual({
       kind: 'move',
     })

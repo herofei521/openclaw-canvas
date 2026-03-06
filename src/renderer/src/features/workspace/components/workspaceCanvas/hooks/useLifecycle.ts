@@ -31,6 +31,7 @@ interface UseWorkspaceCanvasLifecycleParams {
   persistedMinimapVisible: boolean
   setIsMinimapVisible: React.Dispatch<React.SetStateAction<boolean>>
   setSelectedNodeIds: React.Dispatch<React.SetStateAction<string[]>>
+  setSelectedSpaceIds: React.Dispatch<React.SetStateAction<string[]>>
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
   setEmptySelectionPrompt: React.Dispatch<React.SetStateAction<EmptySelectionPromptState | null>>
   cancelSpaceRename: () => void
@@ -55,6 +56,7 @@ export function useWorkspaceCanvasLifecycle({
   persistedMinimapVisible,
   setIsMinimapVisible,
   setSelectedNodeIds,
+  setSelectedSpaceIds,
   setContextMenu,
   setEmptySelectionPrompt,
   cancelSpaceRename,
@@ -79,6 +81,7 @@ export function useWorkspaceCanvasLifecycle({
 
   useEffect(() => {
     setSelectedNodeIds([])
+    setSelectedSpaceIds([])
     setContextMenu(null)
     setEmptySelectionPrompt(null)
     cancelSpaceRename()
@@ -90,6 +93,7 @@ export function useWorkspaceCanvasLifecycle({
     setContextMenu,
     setEmptySelectionPrompt,
     setSelectedNodeIds,
+    setSelectedSpaceIds,
     trackpadGestureLockRef,
     workspaceId,
   ])

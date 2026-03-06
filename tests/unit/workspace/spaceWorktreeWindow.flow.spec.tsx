@@ -91,6 +91,10 @@ describe('SpaceWorktreeWindow flow', () => {
     expect(screen.queryByTestId('space-worktree-open-create')).not.toBeInTheDocument()
     expect(screen.getByTestId('space-worktree-open-detach')).toBeVisible()
 
+    await waitFor(() => {
+      expect(screen.getByTestId('space-worktree-open-switch')).not.toBeDisabled()
+    })
+
     fireEvent.click(screen.getByTestId('space-worktree-open-switch'))
     expect(screen.getByTestId('space-worktree-switch-view')).toBeVisible()
     fireEvent.click(screen.getByTestId('space-worktree-back-home'))

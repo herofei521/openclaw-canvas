@@ -23,10 +23,12 @@ interface UseWorkspaceCanvasInteractionsParams {
   reactFlow: ReactFlowInstance<Node<TerminalNodeData>, Edge>
   setNodes: SetNodes
   setSelectedNodeIds: React.Dispatch<React.SetStateAction<string[]>>
+  setSelectedSpaceIds: React.Dispatch<React.SetStateAction<string[]>>
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
   setEmptySelectionPrompt: React.Dispatch<React.SetStateAction<EmptySelectionPromptState | null>>
   cancelSpaceRename: () => void
   selectedNodeIdsRef: React.MutableRefObject<string[]>
+  selectedSpaceIdsRef: React.MutableRefObject<string[]>
   contextMenu: ContextMenuState | null
   workspacePath: string
   spacesRef: React.MutableRefObject<WorkspaceSpaceState[]>
@@ -43,10 +45,12 @@ export function useWorkspaceCanvasInteractions({
   reactFlow,
   setNodes,
   setSelectedNodeIds,
+  setSelectedSpaceIds,
   setContextMenu,
   setEmptySelectionPrompt,
   cancelSpaceRename,
   selectedNodeIdsRef,
+  selectedSpaceIdsRef,
   contextMenu,
   workspacePath,
   spacesRef,
@@ -91,7 +95,8 @@ export function useWorkspaceCanvasInteractions({
       { syncLayout: false },
     )
     setSelectedNodeIds([])
-  }, [setNodes, setSelectedNodeIds])
+    setSelectedSpaceIds([])
+  }, [setNodes, setSelectedNodeIds, setSelectedSpaceIds])
 
   const openSelectionContextMenu = useCallback(
     (x: number, y: number) => {
@@ -156,13 +161,17 @@ export function useWorkspaceCanvasInteractions({
 
   const handleSelectionChange = useCallback(
     ({ nodes: selected }: { nodes: Node<TerminalNodeData>[] }) => {
+      if (selectionDraftRef.current !== null) {
+        return
+      }
+
       const selectedIds = selected.map(node => node.id)
       setSelectedNodeIds(selectedIds)
       if (selectedIds.length > 0) {
         setEmptySelectionPrompt(null)
       }
     },
-    [setEmptySelectionPrompt, setSelectedNodeIds],
+    [selectionDraftRef, setEmptySelectionPrompt, setSelectedNodeIds],
   )
 
   const {
@@ -174,8 +183,11 @@ export function useWorkspaceCanvasInteractions({
     isShiftPressedRef,
     selectionDraftRef,
     reactFlow,
+    spacesRef,
+    selectedSpaceIdsRef,
     setNodes,
     setSelectedNodeIds,
+    setSelectedSpaceIds,
     setContextMenu,
     setEmptySelectionPrompt,
   })
