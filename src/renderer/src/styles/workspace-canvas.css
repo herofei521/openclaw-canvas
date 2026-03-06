@@ -102,10 +102,6 @@
   cursor: not-allowed;
 }
 
-.workspace-canvas .react-flow__controls-button[data-testid='rf__controls-interactive'] {
-  display: none;
-}
-
 .workspace-canvas .react-flow__minimap {
   width: 100%;
   height: 100%;
