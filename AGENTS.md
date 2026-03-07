@@ -27,7 +27,7 @@ On **every instruction**, triage the request and inform the user:
 - **Scope**: New features, refactors, schema/API changes, cross-module logic.
 - **Action**: **Stop & Align**. You MUST:
     1.  **Draft a Spec (Requirements)**: Align **Business Logic** + **Critical Stability** risks + acceptance criteria.
-        - Explicitly list the top runtime risks you foresee and how you will mitigate/test them.
+        - Explicitly list the top runtime risks you foresee, the state owners involved, the invariants that must remain true, and how you will mitigate/test them.
     2.  **Wait for Spec Approval**: Do not code until the user confirms the spec.
     3.  **Feasibility Check (Research & PoC)** [Optional]:
         - **Trigger**: IF implementing:
@@ -37,7 +37,19 @@ On **every instruction**, triage the request and inform the user:
             - **Core Refactor**: Changes to IPC, Database, or Auth.
         - **Action**: Research options, compare trade-offs, and run a quick PoC. Verify *before* Planning.
     4.  **Draft a Plan (Execution)**: Independently testable steps (TDD) + verification commands.
+        - For each high-risk step, identify the lowest meaningful regression layer (`unit / contract / integration / e2e`).
     5.  **Wait for Plan Approval**: Do not code until the user confirms the plan.
+
+## 2.1 Thinking Standard for Hard Bugs
+
+These rules exist to prevent the subtle, non-obvious bugs that appear when the code is locally correct but the system behavior is wrong.
+
+- **Model First, Then Code**: Before changing non-trivial behavior, identify the mutable states, the owner of each state, the allowed transitions, and what is only derived UI. If ownership is unclear, stop and align.
+- **Use SOLID Selectively**: Treat `SOLID` as a design pressure test, not a ritual. In Cove, `S / I / D` are the highest-value defaults, `O` matters when extending providers/adapters/watchers, and `L` is only relevant when real subtype substitution exists.
+- **Separate Intent / Durable Fact / Runtime Observation / UI Projection**: Never let transient runtime observations (process exit, watcher output, retry fallback, delayed events) silently overwrite the durable source of truth that restart/resume logic depends on unless the business rule explicitly says so.
+- **Prefer Invariants over Scenario Lists**: In specs, reviews, and tests, define 1-3 invariants first. Scenario coverage is infinite; invariants are the compact way to prevent whole bug classes.
+- **Treat Boundaries as Hostile**: The highest-risk moments are startup hydration, shutdown, retries, reconnection, duplicate events, out-of-order async completion, fallback branches, and partial persistence. Assume these can happen at any `await` boundary.
+- **Fix the Bug Class, Not Only the Instance**: Every real bug in lifecycle / persistence / IPC / concurrency paths should produce at least one regression at the lowest meaningful layer and one small rule/assertion/checklist update if the class was previously undocumented.
 
 ## 3. Risk & Compliance System (Electron/Cove Specific)
 
@@ -46,6 +58,8 @@ When planning a **Large Change**, evaluate these risks:
 ### I. Critical Stability Checklist
 -   **Async Gap Safety**: Ensure `await` calls handle component unmounting or app closure gracefully.
 -   **Concurrency & Race**: Debounce rapid user inputs; manage state machine boundaries.
+-   **State Ownership**: For any persisted or recoverable state, ensure there is one authoritative owner. Do not let multiple layers race to write the same truth.
+-   **Restart Semantics**: Distinguish explicit user intent, durable recovery intent, runtime observation, and UI display. App shutdown or watcher noise must not silently downgrade resumable work into terminal state.
 -   **IPC Security**: Validate ALL inputs from Renderer in Main process. No blind trust.
 -   **Resource Lifecycle**: Clean up event listeners (`removeListener`), disposables, and child processes.
 -   **Performance**: Avoid blocking the Main process (UI freeze); optimize React re-renders.

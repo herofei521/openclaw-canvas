@@ -11,14 +11,38 @@
 
 ### 核心编码原则 (Core Coding Principles)
 
+只保留最容易在日常开发中被忽略、但一旦忽略就容易形成系统性问题的原则：
+
 1.  **优先复用 (Prioritize Reuse)**: 在创建任何新代码、组件或工具函数之前，**必须**彻底搜索现有代码库以查找可复用组件。如无必要勿增实体，避免重复造轮子。
-2.  **单一职责原则 (Single Responsibility Principle)**: 每个类、函数或模块都应只负责一项功能，保持高内聚。
-3.  **保持简单 (KISS)**: 优先选择简单直接的解决方案，避免过度工程化。
-4.  **不要重复自己 (DRY)**: 避免代码重复，通过抽象和复用提高代码质量。
-5.  **小步迭代与持续验收 (Incremental Iteration & Continuous Acceptance)**: 主要功能必须拆分为独立可测试、可验收的步骤，确保小步快跑，频繁集成，并持续验证业务价值。
-6.  **封装横切关注点 (Encapsulate Cross-Cutting Concerns)**: 如发现对于影响多个模块的通用功能（如IPC通信、日志、错误处理），应重构统一封装，避免在使用方重复实现。
-7.  **组件逻辑内化 (Logic Internalization)**: 重构时，将分散在使用方的重复逻辑下沉到组件内部，实现组件自治，让组件自己管理自己的行为。
-8.  **关注点分离 (Separation of Concerns)**: 将不同的职责分配到不同的模块（Main/Preload/Renderer），每个模块专注于一件事，降低耦合度。
+2.  **明确状态所有权 (State Ownership)**: 对会被持久化、恢复、同步或跨层传播的状态，必须明确唯一 owner 与 single source of truth。多个写入口默认视为设计风险。
+3.  **边界内聚，副作用靠边 (Keep Boundaries Clean)**: `Main / Preload / Renderer / external CLI` 各司其职。状态决策不要跨层泄漏，IO / IPC / 文件系统等副作用尽量收敛在边界层。
+4.  **封装横切关注点 (Encapsulate Cross-Cutting Concerns)**: IPC、日志、错误处理、watcher、persistence coordination 等横切逻辑要统一收口，避免调用方各自实现一份。
+5.  **重复行为优先下沉到拥有者 (Logic Internalization)**: 若同一行为在多个调用方重复出现，优先下沉到真正拥有该行为的组件/模块，而不是在使用方复制。
+6.  **把 SOLID 当作校准器，不当作教条 (Use SOLID as a Design Check)**:
+    - `S`：模块如果同时承担状态决策、IO、UI、恢复策略，通常已经拆分过晚。
+    - `O`：新增 `provider / adapter / watcher` 时，优先新增实现，而不是到处改稳定分发逻辑。
+    - `L`：只有存在真实子类型替换时才考虑；不要为了“像 OO”强造继承层级。
+    - `I`：`preload / service / bridge` 接口要小而专用，不暴露大而全 API。
+    - `D`：高层依赖抽象端口和类型，不直接依赖 `Electron / PTY / CLI` 细节。
+
+### 高风险问题预防策略（只列最容易漏的）
+
+1.  **先写状态/所有权表，再写流程**：对跨 `Main / Preload / Renderer / PTY / persistence / external CLI` 的改动，先明确四列：`state`、`owner`、`write entry`、`restart source of truth`。若同一真相存在多个写入口，默认高风险。
+2.  **严格区分四类状态**：
+    - `用户意图`：用户明确要求的结果（如 stop、resume、close、archive）。
+    - `持久化事实`：重启/恢复逻辑依赖的 durable source of truth。
+    - `运行时观测`：进程、watcher、IPC、fallback 当前上报了什么。
+    - `UI 派生展示`：仅用于显示的即时状态。
+    - 规则：短暂的运行时观测不得直接覆盖恢复所依赖的持久化事实，除非有明确业务规则和回归测试。
+3.  **优先验证不变量，不堆场景**：每个高风险改动至少先写出 1-3 条不变量。测试优先证明“哪些错误不会发生”，而不是只证明 happy path 能跑通。
+4.  **默认过一遍故障模型**：重点考虑 `await` 中途关闭窗口/退出 app、事件重复/乱序/延迟、fallback 或 cleanup 比 happy path 更早写状态、部分成功/部分失败、旧数据恢复，以及跨平台路径/shell/权限差异。
+5.  **测试按风险层分配，不按文件平均分配**：
+    - `Unit`：状态迁移、normalize、纯逻辑不变量。
+    - `Contract`：IPC payload、跨层边界、输入校验。
+    - `Integration`：hydration、persistence、restart、lifecycle、watcher 协作。
+    - `E2E`：只覆盖关键用户路径，不替代前三级。
+    - 触及 `lifecycle / persistence / IPC / external session watcher / async concurrency` 的 PR，至少要有一条跨边界回归测试。
+6.  **每个真实 bug 都要资产化**：至少沉淀为以下之一：回归测试、运行时断言、文档规则、抽象收敛。同类 bug 第二次出现时，优先升维修模型/抽象，不再只补局部 patch。
 
 ## 全局硬规则（摘要）
 
@@ -29,6 +53,7 @@
 -   **Small vs Large**（详见 `AGENTS.md`）：
     -   **Small**：直接做，小步快反馈，跑针对性验证。
     -   **Large / 运行时高风险**：遵循 **Spec -> (Feasibility Check) -> Plan** 流程。
+        -   **高风险触发器（最易漏）**：启动/重启恢复、hydration、持久化写回、退出生命周期、跨层状态同步、external CLI / watcher 回写、fallback/cleanup 改写状态、多写者共享同一真相。
         -   **Spec**：明确验收标准、风险点及验证手段，等待确认。
         -   **Feasibility Check**：针对新技术/高性能/核心重构，必须先调研并跑通 PoC。
         -   **Plan**：制定详细执行计划，等待确认。
