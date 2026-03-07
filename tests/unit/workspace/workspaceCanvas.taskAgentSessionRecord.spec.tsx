@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { Node } from '@xyflow/react'
 import { DEFAULT_AGENT_SETTINGS } from '../../../src/renderer/src/features/settings/agentConfig'
@@ -148,6 +148,7 @@ describe('WorkspaceCanvas task agent session record', () => {
             effectiveModel: 'gpt-5.2-codex',
             launchMode: 'new',
             resumeSessionId: 'resume-updated',
+            resumeSessionIdVerified: false,
             executionDirectory: '/tmp/repo/.cove/worktrees/demo',
             directoryMode: 'workspace',
             customDirectory: null,
@@ -226,7 +227,9 @@ describe('WorkspaceCanvas task agent session record', () => {
 
     render(<Harness />)
 
-    metadataListener?.({ sessionId: 'session-agent', resumeSessionId: 'resume-updated' })
+    act(() => {
+      metadataListener?.({ sessionId: 'session-agent', resumeSessionId: 'resume-updated' })
+    })
 
     fireEvent.click(screen.getByTestId('agent-close'))
 
@@ -244,6 +247,7 @@ describe('WorkspaceCanvas task agent session record', () => {
         provider: 'codex',
         prompt: 'Do something important',
         resumeSessionId: 'resume-updated',
+        resumeSessionIdVerified: true,
         boundDirectory: '/tmp/repo/.cove/worktrees/demo',
         status: 'stopped',
       }),

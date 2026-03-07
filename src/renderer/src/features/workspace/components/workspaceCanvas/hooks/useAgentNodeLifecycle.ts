@@ -1,6 +1,10 @@
 import { useCallback, type MutableRefObject } from 'react'
 import type { Node } from '@xyflow/react'
 import type { AgentNodeData, TerminalNodeData } from '../../../types'
+import {
+  clearResumeSessionBinding,
+  isResumeSessionBindingVerified,
+} from '../../../utils/agentResumeBinding'
 import { invalidateCachedTerminalScreenState } from '../../terminalNode/screenStateCache'
 import { providerTitlePrefix, toErrorMessage } from '../helpers'
 import { resolveInitialAgentRuntimeStatus } from '../../../utils/agentRuntimeStatus'
@@ -45,6 +49,26 @@ export function useWorkspaceCanvasAgentNodeLifecycle({
       }
 
       const launchData = node.data.agent
+
+      if (mode === 'resume' && !isResumeSessionBindingVerified(launchData)) {
+        setNodes(prevNodes =>
+          prevNodes.map(item => {
+            if (item.id !== nodeId) {
+              return item
+            }
+
+            return {
+              ...item,
+              data: {
+                ...item.data,
+                status: 'failed',
+                lastError: '该 Agent 没有已验证的 resumeSessionId，无法 Resume。',
+              },
+            }
+          }),
+        )
+        return
+      }
 
       if (mode === 'new' && launchData.prompt.trim().length === 0) {
         setNodes(prevNodes =>
@@ -103,6 +127,14 @@ export function useWorkspaceCanvasAgentNodeLifecycle({
               endedAt: null,
               exitCode: null,
               lastError: null,
+              agent:
+                mode === 'new' && item.data.agent
+                  ? {
+                      ...item.data.agent,
+                      launchMode: 'new',
+                      ...clearResumeSessionBinding(),
+                    }
+                  : item.data.agent,
             },
           }
         }),
@@ -141,7 +173,12 @@ export function useWorkspaceCanvasAgentNodeLifecycle({
               ...launchData,
               launchMode: launched.launchMode,
               effectiveModel: launched.effectiveModel,
-              resumeSessionId: launched.resumeSessionId ?? launchData.resumeSessionId,
+              ...(mode === 'resume'
+                ? {
+                    resumeSessionId: launched.resumeSessionId ?? launchData.resumeSessionId,
+                    resumeSessionIdVerified: true,
+                  }
+                : clearResumeSessionBinding()),
             }
 
             return {

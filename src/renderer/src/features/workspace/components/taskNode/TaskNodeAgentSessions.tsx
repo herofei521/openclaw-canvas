@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type JSX } from 'react'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import type { AgentProvider } from '../../../settings/agentConfig'
+import { isResumeSessionBindingVerified } from '../../utils/agentResumeBinding'
 import type { AgentRuntimeStatus, TaskAgentSessionRecord } from '../../types'
 import { providerLabel, toAgentRuntimeLabel } from '../workspaceCanvas/helpers'
 import { formatTaskTimestamp, resolveAgentSessionTone } from './helpers'
@@ -70,6 +71,14 @@ export function TaskNodeAgentSessions({
       )
     })
   }, [agentSessions])
+
+  const agentSessionMenuRecord = useMemo(() => {
+    if (!agentSessionMenu) {
+      return null
+    }
+
+    return sortedAgentSessions.find(record => record.id === agentSessionMenu.recordId) ?? null
+  }, [agentSessionMenu, sortedAgentSessions])
 
   const resumeConfirmRecord = useMemo(() => {
     if (!resumeConfirmRecordId) {
@@ -172,17 +181,19 @@ export function TaskNodeAgentSessions({
             event.stopPropagation()
           }}
         >
-          <button
-            type="button"
-            data-testid={`task-node-agent-session-menu-resume-${agentSessionMenu.recordId}`}
-            onClick={() => {
-              setResumeConfirmRecordId(agentSessionMenu.recordId)
-              setAgentSessionMenu(null)
-            }}
-          >
-            <RotateCcw className="workspace-context-menu__icon" aria-hidden="true" />
-            <span className="workspace-context-menu__label">Resume</span>
-          </button>
+          {agentSessionMenuRecord && isResumeSessionBindingVerified(agentSessionMenuRecord) ? (
+            <button
+              type="button"
+              data-testid={`task-node-agent-session-menu-resume-${agentSessionMenu.recordId}`}
+              onClick={() => {
+                setResumeConfirmRecordId(agentSessionMenu.recordId)
+                setAgentSessionMenu(null)
+              }}
+            >
+              <RotateCcw className="workspace-context-menu__icon" aria-hidden="true" />
+              <span className="workspace-context-menu__label">Resume</span>
+            </button>
+          ) : null}
           <button
             type="button"
             data-testid={`task-node-agent-session-menu-remove-${agentSessionMenu.recordId}`}

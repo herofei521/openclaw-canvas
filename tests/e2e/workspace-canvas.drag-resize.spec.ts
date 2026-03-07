@@ -163,6 +163,7 @@ test.describe('Workspace Canvas - Drag & Resize', () => {
             effectiveModel: 'gpt-5.2-codex',
             launchMode: 'resume',
             resumeSessionId: '019c3e32-52ff-7b00-94ac-e6c5a56b4aa4',
+            resumeSessionIdVerified: true,
             executionDirectory: testWorkspacePath,
             directoryMode: 'workspace',
             customDirectory: null,

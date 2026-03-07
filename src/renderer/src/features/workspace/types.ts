@@ -23,6 +23,7 @@ export interface TaskAgentSessionRecord {
   id: string
   provider: AgentProvider
   resumeSessionId: string | null
+  resumeSessionIdVerified?: boolean
   prompt: string
   model: string | null
   effectiveModel: string | null
@@ -42,6 +43,7 @@ export interface AgentNodeData {
   effectiveModel: string | null
   launchMode: AgentLaunchMode
   resumeSessionId: string | null
+  resumeSessionIdVerified?: boolean
   executionDirectory: string
   expectedDirectory: string | null
   directoryMode: ExecutionDirectoryMode

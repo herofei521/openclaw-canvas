@@ -11,10 +11,17 @@ interface LocateAgentResumeSessionInput {
   timeoutMs?: number
 }
 
+interface CodexSessionMeta {
+  sessionId: string
+  cwd: string
+  timestampMs: number
+}
+
 const POLL_INTERVAL_MS = 200
 const DEFAULT_TIMEOUT_MS = 2600
 const FIRST_LINE_READ_CHUNK_BYTES = 4096
 const FIRST_LINE_MAX_BYTES = 64 * 1024
+const CODEX_CANDIDATE_WINDOW_MS = 20_000
 
 function toDateDirectoryParts(timestampMs: number): [string, string, string] {
   const date = new Date(timestampMs)
@@ -95,6 +102,50 @@ async function readFirstLine(filePath: string): Promise<string | null> {
   }
 }
 
+function parseTimestampMs(value: unknown): number | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const timestampMs = Date.parse(value)
+  return Number.isFinite(timestampMs) ? timestampMs : null
+}
+
+function parseCodexSessionMeta(firstLine: string): CodexSessionMeta | null {
+  try {
+    const parsed = JSON.parse(firstLine) as {
+      type?: unknown
+      timestamp?: unknown
+      payload?: {
+        id?: unknown
+        cwd?: unknown
+        timestamp?: unknown
+      }
+    }
+
+    if (parsed.type !== 'session_meta') {
+      return null
+    }
+
+    const sessionId = typeof parsed.payload?.id === 'string' ? parsed.payload.id.trim() : ''
+    const sessionCwd = typeof parsed.payload?.cwd === 'string' ? resolve(parsed.payload.cwd) : null
+    const timestampMs =
+      parseTimestampMs(parsed.payload?.timestamp) ?? parseTimestampMs(parsed.timestamp)
+
+    if (sessionId.length === 0 || !sessionCwd || timestampMs === null) {
+      return null
+    }
+
+    return {
+      sessionId,
+      cwd: sessionCwd,
+      timestampMs,
+    }
+  } catch {
+    return null
+  }
+}
+
 async function findClaudeResumeSessionId(cwd: string, startedAtMs: number): Promise<string | null> {
   const claudeProjectsDir = join(os.homedir(), '.claude', 'projects')
   const encodedPath = resolve(cwd).replace(/[\\/]/g, '-').replace(/:/g, '')
@@ -134,12 +185,15 @@ async function findClaudeResumeSessionId(cwd: string, startedAtMs: number): Prom
 async function findCodexResumeSessionId(cwd: string, startedAtMs: number): Promise<string | null> {
   const codexSessionsDir = join(os.homedir(), '.codex', 'sessions')
   const resolvedCwd = resolve(cwd)
-
   const dateCandidates = new Set<string>()
   const now = Date.now()
-  const timestamps = [startedAtMs, now, now - 24 * 60 * 60 * 1000]
 
-  for (const timestamp of timestamps) {
+  for (const timestamp of [
+    startedAtMs,
+    startedAtMs - 24 * 60 * 60 * 1000,
+    now,
+    now - 24 * 60 * 60 * 1000,
+  ]) {
     const [year, month, day] = toDateDirectoryParts(timestamp)
     dateCandidates.add(join(codexSessionsDir, year, month, day))
   }
@@ -157,55 +211,32 @@ async function findCodexResumeSessionId(cwd: string, startedAtMs: number): Promi
     return null
   }
 
-  const candidates = (
-    await Promise.all(
-      files.map(async file => {
-        try {
-          const stats = await fs.stat(file)
-          return {
-            file,
-            mtimeMs: stats.mtimeMs,
-          }
-        } catch {
-          return null
-        }
-      }),
-    )
-  )
-    .filter((item): item is { file: string; mtimeMs: number } => item !== null)
-    .filter(item => item.mtimeMs >= startedAtMs - 60_000)
-    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+  const matchingSessionIds = new Set<string>()
 
-  for (const candidate of candidates) {
+  for (const file of files) {
     // eslint-disable-next-line no-await-in-loop
-    const firstLine = await readFirstLine(candidate.file)
+    const firstLine = await readFirstLine(file)
     if (!firstLine) {
       continue
     }
 
-    try {
-      const parsed = JSON.parse(firstLine) as {
-        payload?: {
-          id?: unknown
-          cwd?: unknown
-        }
-      }
-
-      const sessionId = typeof parsed.payload?.id === 'string' ? parsed.payload.id.trim() : null
-      const sessionCwd =
-        typeof parsed.payload?.cwd === 'string' ? resolve(parsed.payload.cwd) : null
-
-      if (!sessionId || sessionCwd !== resolvedCwd) {
-        continue
-      }
-
-      return sessionId
-    } catch {
+    const parsed = parseCodexSessionMeta(firstLine)
+    if (!parsed || parsed.cwd !== resolvedCwd) {
       continue
+    }
+
+    if (Math.abs(parsed.timestampMs - startedAtMs) > CODEX_CANDIDATE_WINDOW_MS) {
+      continue
+    }
+
+    matchingSessionIds.add(parsed.sessionId)
+    if (matchingSessionIds.size > 1) {
+      return null
     }
   }
 
-  return null
+  const [sessionId] = [...matchingSessionIds]
+  return sessionId ?? null
 }
 
 async function tryFindResumeSessionId(

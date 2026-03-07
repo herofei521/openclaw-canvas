@@ -31,11 +31,20 @@ async function runCodexStandbyNoNewlineScenario(cwd) {
     day,
     `rollout-${sessionId}.jsonl`,
   )
+  const sessionTimestamp = new Date(startedAtMs).toISOString()
 
   await fs.mkdir(dirname(sessionFilePath), { recursive: true })
   await fs.writeFile(
     sessionFilePath,
-    `${JSON.stringify({ payload: { id: sessionId, cwd } })}\n`,
+    `${JSON.stringify({
+      timestamp: sessionTimestamp,
+      type: 'session_meta',
+      payload: {
+        id: sessionId,
+        cwd,
+        timestamp: sessionTimestamp,
+      },
+    })}\n`,
     'utf8',
   )
 

@@ -114,6 +114,18 @@ describe('buildAgentLaunchCommand', () => {
     expect(command.launchMode).toBe('resume')
   })
 
+  it('rejects codex resume without explicit session id', () => {
+    expect(() =>
+      buildAgentLaunchCommand({
+        provider: 'codex',
+        mode: 'resume',
+        prompt: '',
+        model: null,
+        resumeSessionId: null,
+      }),
+    ).toThrow('codex resume requires explicit session id')
+  })
+
   it('builds claude resume command without explicit session id', () => {
     const command = buildAgentLaunchCommand({
       provider: 'claude-code',

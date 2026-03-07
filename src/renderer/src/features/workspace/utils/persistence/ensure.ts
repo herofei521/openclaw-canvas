@@ -7,6 +7,7 @@ import type {
   TaskNodeData,
 } from '../../types'
 import type { WorkspaceSpaceState } from '../../types'
+import { clearResumeSessionBinding, isResumeSessionBindingVerified } from '../agentResumeBinding'
 import {
   normalizeAgentRuntimeStatus,
   normalizeDirectoryMode,
@@ -23,6 +24,33 @@ import {
   normalizeWorkspaceSpaceRect,
   normalizeWorkspaceViewport,
 } from './normalize'
+
+function normalizeResumeSessionBinding(
+  provider: 'claude-code' | 'codex',
+  record: Record<string, unknown>,
+): {
+  resumeSessionId: string | null
+  resumeSessionIdVerified: boolean
+} {
+  const resumeSessionId = normalizeOptionalString(record.resumeSessionId)
+  const resumeSessionIdVerifiedInput =
+    typeof record.resumeSessionIdVerified === 'boolean' ? record.resumeSessionIdVerified : undefined
+
+  if (
+    !isResumeSessionBindingVerified({
+      provider,
+      resumeSessionId,
+      resumeSessionIdVerified: resumeSessionIdVerifiedInput,
+    })
+  ) {
+    return clearResumeSessionBinding()
+  }
+
+  return {
+    resumeSessionId,
+    resumeSessionIdVerified: true,
+  }
+}
 
 function ensurePersistedTaskAgentSessionRecords(value: unknown): TaskAgentSessionRecord[] {
   if (!Array.isArray(value)) {
@@ -49,11 +77,12 @@ function ensurePersistedTaskAgentSessionRecords(value: unknown): TaskAgentSessio
     }
 
     const status = normalizeAgentRuntimeStatus(record.status) ?? 'exited'
+    const resumeBinding = normalizeResumeSessionBinding(provider, record)
 
     records.push({
       id,
       provider,
-      resumeSessionId: normalizeOptionalString(record.resumeSessionId),
+      ...resumeBinding,
       prompt,
       model: normalizeOptionalString(record.model),
       effectiveModel: normalizeOptionalString(record.effectiveModel),
@@ -108,12 +137,14 @@ function ensurePersistedAgentData(value: unknown): AgentNodeData | null {
 
   const record = value as Record<string, unknown>
   const provider = normalizeProvider(record.provider)
-  const prompt = normalizeOptionalString(record.prompt)
+  const prompt = typeof record.prompt === 'string' ? record.prompt : ''
   const executionDirectory = normalizeOptionalString(record.executionDirectory)
 
-  if (!provider || !prompt || !executionDirectory) {
+  if (!provider || !executionDirectory) {
     return null
   }
+
+  const resumeBinding = normalizeResumeSessionBinding(provider, record)
 
   return {
     provider,
@@ -121,7 +152,7 @@ function ensurePersistedAgentData(value: unknown): AgentNodeData | null {
     model: normalizeOptionalString(record.model),
     effectiveModel: normalizeOptionalString(record.effectiveModel),
     launchMode: normalizeLaunchMode(record.launchMode),
-    resumeSessionId: normalizeOptionalString(record.resumeSessionId),
+    ...resumeBinding,
     executionDirectory,
     expectedDirectory: normalizeOptionalString(record.expectedDirectory) ?? executionDirectory,
     directoryMode: normalizeDirectoryMode(record.directoryMode),

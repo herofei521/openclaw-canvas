@@ -126,6 +126,7 @@ export interface SeedAgentData {
   effectiveModel: string | null
   launchMode: 'new' | 'resume'
   resumeSessionId: string | null
+  resumeSessionIdVerified?: boolean
   executionDirectory: string
   directoryMode: 'workspace' | 'custom'
   customDirectory: string | null

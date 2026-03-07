@@ -64,7 +64,9 @@
     -   lock 文件 (`pnpm-lock.yaml`) 必须由命令生成/更新。
     -   生成代码（如自动生成的类型定义等）禁止手改。
 -   **提交前检查（与 CI 对齐的最低门槛）**：
-    -   执行 `pnpm pre-commit` （type, lint, format, test）
+    -   运行 `pnpm pre-commit` 前，必须先 `git add` 本次改动，再执行 `pnpm line-check:staged`，因为行数门禁只检查 staged 文件。
+    -   若 staged 文件中存在超过 500 行的文件，先重构/拆分，过门禁后再继续，不要带着超长文件直接运行 `pnpm pre-commit`。
+    -   通过上述检查后，再执行 `pnpm pre-commit` （type, lint, format, test）。
 -   **测试失败排查前置**：
     -   凡遇到 `pnpm pre-commit`、`pnpm test -- --run`、`pnpm test:e2e` 或单独 `Playwright` 用例失败，继续排查前**必须先阅读** `docs/DEBUGGING.md`。
 -   **安全（Electron Security）**：

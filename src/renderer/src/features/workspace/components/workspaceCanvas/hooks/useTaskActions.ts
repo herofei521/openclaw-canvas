@@ -140,11 +140,13 @@ export function useWorkspaceCanvasTaskActions({
         setNodes,
         createNodeForSession,
         buildAgentNodeTitle,
+        agentSettings,
         workspacePath,
         onRequestPersistFlush,
       })
     },
     [
+      agentSettings,
       buildAgentNodeTitle,
       createNodeForSession,
       nodesRef,

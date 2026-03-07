@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { Node } from '@xyflow/react'
 import type { TerminalNodeData } from '../../../types'
+import { clearResumeSessionBinding } from '../../../utils/agentResumeBinding'
 
 export function useWorkspaceCanvasPtyTaskCompletion({
   setNodes,
@@ -70,8 +71,21 @@ export function useWorkspaceCanvasPtyTaskCompletion({
                 if (
                   node.data.kind !== 'agent' ||
                   node.data.sessionId !== event.sessionId ||
-                  !node.data.agent ||
-                  node.data.agent.resumeSessionId === event.resumeSessionId
+                  !node.data.agent
+                ) {
+                  return node
+                }
+
+                const nextResumeSessionId =
+                  typeof event.resumeSessionId === 'string' &&
+                  event.resumeSessionId.trim().length > 0
+                    ? event.resumeSessionId
+                    : null
+                const nextResumeSessionIdVerified = nextResumeSessionId !== null
+
+                if (
+                  node.data.agent.resumeSessionId === nextResumeSessionId &&
+                  node.data.agent.resumeSessionIdVerified === nextResumeSessionIdVerified
                 ) {
                   return node
                 }
@@ -83,7 +97,12 @@ export function useWorkspaceCanvasPtyTaskCompletion({
                     ...node.data,
                     agent: {
                       ...node.data.agent,
-                      resumeSessionId: event.resumeSessionId,
+                      ...(nextResumeSessionId
+                        ? {
+                            resumeSessionId: nextResumeSessionId,
+                            resumeSessionIdVerified: true,
+                          }
+                        : clearResumeSessionBinding()),
                     },
                   },
                 }

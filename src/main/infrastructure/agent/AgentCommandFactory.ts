@@ -84,16 +84,15 @@ export function buildAgentLaunchCommand(input: BuildAgentLaunchCommandInput): Ag
   }
 
   if (input.mode === 'resume') {
+    if (!resumeSessionId) {
+      throw new Error('codex resume requires explicit session id')
+    }
+
     const args = [
       agentFullAccess ? '--dangerously-bypass-approvals-and-sandbox' : '--full-auto',
       'resume',
+      resumeSessionId,
     ]
-
-    if (resumeSessionId) {
-      args.push(resumeSessionId)
-    } else {
-      args.push('--last')
-    }
 
     if (effectiveModel) {
       args.push('--model', effectiveModel)

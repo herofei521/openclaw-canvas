@@ -10,10 +10,9 @@ import { useScrollbackStore } from '../../features/workspace/store/useScrollback
 import { readPersistedStateWithMeta } from '../../features/workspace/utils/persistence'
 import { getPersistencePort } from '../../features/workspace/utils/persistence/port'
 import { toRuntimeNodes } from '../../features/workspace/utils/nodeTransform'
-import { toAgentNodeTitle, toErrorMessage } from '../utils/format'
-import { resolveInitialAgentRuntimeStatus } from '../../features/workspace/utils/agentRuntimeStatus'
 import { useAppStore } from '../store/useAppStore'
 import { sanitizeWorkspaceSpaces } from '../utils/workspaceSpaces'
+import { hydrateAgentNode } from '../utils/hydrateAgentNode'
 
 function isFulfilled<T>(result: PromiseSettledResult<T>): result is PromiseFulfilledResult<T> {
   return result.status === 'fulfilled'
@@ -92,138 +91,11 @@ export function useHydrateAppState({
           }
 
           if (node.data.kind === 'agent' && node.data.agent) {
-            const shouldAutoResumeAgent =
-              node.data.status === 'running' ||
-              node.data.status === 'standby' ||
-              node.data.status === 'restoring'
-
-            if (shouldAutoResumeAgent) {
-              try {
-                const restoredAgent = await window.coveApi.agent.launch({
-                  provider: node.data.agent.provider,
-                  cwd: node.data.agent.executionDirectory,
-                  prompt: node.data.agent.prompt,
-                  mode: 'resume',
-                  model: node.data.agent.model,
-                  resumeSessionId: node.data.agent.resumeSessionId,
-                  agentFullAccess: useAppStore.getState().agentSettings.agentFullAccess,
-                  cols: 80,
-                  rows: 24,
-                })
-
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    sessionId: restoredAgent.sessionId,
-                    title: toAgentNodeTitle(node.data.agent.provider, restoredAgent.effectiveModel),
-                    status: resolveInitialAgentRuntimeStatus(node.data.agent.prompt),
-                    endedAt: null,
-                    exitCode: null,
-                    lastError: null,
-                    scrollback: node.data.scrollback,
-                    startedAt: node.data.startedAt ?? new Date().toISOString(),
-                    agent: {
-                      ...node.data.agent,
-                      effectiveModel: restoredAgent.effectiveModel,
-                      launchMode: restoredAgent.launchMode,
-                      resumeSessionId:
-                        restoredAgent.resumeSessionId ?? node.data.agent.resumeSessionId,
-                    },
-                  },
-                }
-              } catch (error) {
-                const now = new Date().toISOString()
-                const resumeError = toErrorMessage(error)
-
-                try {
-                  const fallback = await window.coveApi.pty.spawn({
-                    cwd: workspace.path,
-                    cols: 80,
-                    rows: 24,
-                  })
-
-                  return {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      sessionId: fallback.sessionId,
-                      status: 'failed' as const,
-                      endedAt: now,
-                      exitCode: null,
-                      lastError: `Resume failed: ${resumeError}`,
-                      scrollback: node.data.scrollback,
-                    },
-                  }
-                } catch (fallbackError) {
-                  return {
-                    ...node,
-                    data: {
-                      ...node.data,
-                      sessionId: '',
-                      status: 'failed' as const,
-                      endedAt: now,
-                      exitCode: null,
-                      lastError: `Resume failed: ${resumeError}. Fallback terminal failed: ${toErrorMessage(fallbackError)}`,
-                      scrollback: node.data.scrollback,
-                    },
-                  }
-                }
-              }
-            }
-
-            try {
-              const spawned = await window.coveApi.pty.spawn({
-                cwd: node.data.agent.executionDirectory,
-                cols: 80,
-                rows: 24,
-              })
-
-              return {
-                ...node,
-                data: {
-                  ...node.data,
-                  sessionId: spawned.sessionId,
-                },
-              }
-            } catch (error) {
-              const now = new Date().toISOString()
-              const spawnError = toErrorMessage(error)
-
-              try {
-                const fallback = await window.coveApi.pty.spawn({
-                  cwd: workspace.path,
-                  cols: 80,
-                  rows: 24,
-                })
-
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    sessionId: fallback.sessionId,
-                    status: 'failed' as const,
-                    endedAt: now,
-                    exitCode: null,
-                    lastError: `Terminal spawn failed: ${spawnError}`,
-                    scrollback: node.data.scrollback,
-                  },
-                }
-              } catch (fallbackError) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    sessionId: '',
-                    status: 'failed' as const,
-                    endedAt: now,
-                    exitCode: null,
-                    lastError: `Terminal spawn failed: ${spawnError}. Fallback terminal failed: ${toErrorMessage(fallbackError)}`,
-                    scrollback: node.data.scrollback,
-                  },
-                }
-              }
-            }
+            return hydrateAgentNode({
+              node,
+              workspacePath: workspace.path,
+              agentFullAccess: useAppStore.getState().agentSettings.agentFullAccess,
+            })
           }
 
           const spawned = await window.coveApi.pty.spawn({

@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import type { Node } from '@xyflow/react'
 import { resolveAgentModel, type AgentSettings } from '../../../../settings/agentConfig'
 import type { AgentNodeData, Point, TerminalNodeData, WorkspaceSpaceState } from '../../../types'
+import { clearResumeSessionBinding } from '../../../utils/agentResumeBinding'
 import { sanitizeSpaces, toErrorMessage } from '../helpers'
 import type { ContextMenuState, CreateNodeInput } from '../types'
 import { expandSpaceToFitOwnedNodesAndPushAway } from '../../../utils/spaceAutoResize'
@@ -100,7 +101,7 @@ export function useWorkspaceCanvasAgentLauncher({
             model,
             effectiveModel: launched.effectiveModel,
             launchMode: launched.launchMode,
-            resumeSessionId: launched.resumeSessionId,
+            ...clearResumeSessionBinding(),
             executionDirectory,
             expectedDirectory: executionDirectory,
             directoryMode: 'workspace',

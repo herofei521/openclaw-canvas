@@ -1,5 +1,9 @@
 import type { Node } from '@xyflow/react'
 import type { TaskAgentSessionRecord, TerminalNodeData } from '../../../types'
+import {
+  clearResumeSessionBinding,
+  isResumeSessionBindingVerified,
+} from '../../../utils/agentResumeBinding'
 
 function createAgentSessionRecord(
   target: Node<TerminalNodeData> | undefined,
@@ -15,11 +19,17 @@ function createAgentSessionRecord(
     target.data.status === 'running' ||
     target.data.status === 'standby' ||
     target.data.status === 'restoring'
+  const resumeBinding = isResumeSessionBindingVerified(target.data.agent)
+    ? {
+        resumeSessionId: target.data.agent.resumeSessionId,
+        resumeSessionIdVerified: true,
+      }
+    : clearResumeSessionBinding()
 
   return {
     id: crypto.randomUUID(),
     provider: target.data.agent.provider,
-    resumeSessionId: target.data.agent.resumeSessionId,
+    ...resumeBinding,
     prompt: target.data.agent.prompt,
     model: target.data.agent.model,
     effectiveModel: target.data.agent.effectiveModel,
