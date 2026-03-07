@@ -25,6 +25,17 @@
     - `I`：`preload / service / bridge` 接口要小而专用，不暴露大而全 API。
     - `D`：高层依赖抽象端口和类型，不直接依赖 `Electron / PTY / CLI` 细节。
 
+### 架构执行触发器 (Architecture Execution Triggers)
+
+只保留最容易在代码演化中失控、且最值得前置约束的触发器：
+
+1.  **先分离决策与编排**：状态迁移/业务判定属于 owner；`IO / IPC / CLI / watcher` 调用属于 orchestration。一个函数若同时承担两者，默认应先拆分。
+2.  **出现以下组合时，先拆再改**：
+    - 同一文件出现两个以上独立变更原因。
+    - 同一函数同时包含 `状态判定 + 外部调用 + fallback/retry + 写回`。
+    - 同一次改动同时触及 `lifecycle / persistence / hydration / resume / watcher` 中两项及以上。
+3.  **高风险路径先写不变量**：启动、恢复、关闭、重试、fallback、异步乱序相关改动，先写 `1-3` 条 invariant，再决定实现位置与测试层级。
+
 ### 高风险问题预防策略（只列最容易漏的）
 
 1.  **先写状态/所有权表，再写流程**：对跨 `Main / Preload / Renderer / PTY / persistence / external CLI` 的改动，先明确四列：`state`、`owner`、`write entry`、`restart source of truth`。若同一真相存在多个写入口，默认高风险。
@@ -46,10 +57,7 @@
 
 ## 全局硬规则（摘要）
 
--   **架构分层**：本项目为 Clean 架构
-    -   **Main Process**：负责系统级操作、窗口管理、文件系统访问。
-    -   **Preload**：安全桥接，暴露有限的 API 给渲染进程。
-    -   **Renderer**：纯 UI 逻辑 (React 19 + Tailwind v4)，**严禁**直接调用 Node.js API。
+-   **架构基线**：本项目以 `DDD` 划分领域，以 `Clean` 约束依赖；`context` 是一级组织单位，每个 context 强制拆为 `domain / application / infrastructure / presentation`，`app/main`、`app/preload`、`app/renderer` 只做组合与边界。细则见 `docs/ARCHITECTURE.md`。
 -   **Small vs Large**（详见 `AGENTS.md`）：
     -   **Small**：直接做，小步快反馈，跑针对性验证。
     -   **Large / 运行时高风险**：遵循 **Spec -> (Feasibility Check) -> Plan** 流程。
