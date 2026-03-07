@@ -4,6 +4,8 @@ First off, thanks for taking the time to contribute! 🎉
 
 Cove is an ambitious project to redefine how we build software with AI. Whether you're fixing a bug, improving documentation, or proposing a new feature, your help is welcome.
 
+For repository workflow and architecture rules, read `DEVELOPMENT.md` first. This document is the contributor-facing companion, focused on reviewability and high-risk change discipline.
+
 ## 🧭 Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
@@ -64,13 +66,15 @@ Before submitting a PR, ensure your changes pass our quality checks:
 | `pnpm test:e2e` | Run Playwright end-to-end tests (requires build) |
 
 > **Tip:** If `pnpm test:e2e` fails, try running `pnpm build` first to ensure the Electron binary is up to date.
+>
+> **High-risk rule:** if your change touches lifecycle, persistence, IPC, watcher coordination, or restart behavior, at least one cross-boundary regression test is expected in addition to local unit coverage.
 
 ## 📥 Pull Request Process
 
 1. **Small & Focused**: Keep PRs small. If a PR does two things, split it into two.
 2. **Descriptive Title**: Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) (e.g., `feat: implementation agent flow`, `fix: terminal resize jitter`).
-3. **Context is King**: In your PR description, explain *why* you made this change, not just *what* you changed. Attach screenshots or GIFs for UI changes.
-4. **Test coverage**: Ensure new features have corresponding unit/E2E tests.
+3. **Context is King**: In your PR description, explain *why* you made this change, not just *what* you changed. For high-risk changes, also state the state owner, the key invariant(s), and the regression layer you chose. Attach screenshots or GIFs for UI changes.
+4. **Test coverage**: Ensure new features have corresponding tests, and ensure high-risk cross-boundary changes include at least one regression that exercises the boundary where the bug class could recur.
 
 ## 🎨 Style Guide
 
@@ -78,6 +82,7 @@ Before submitting a PR, ensure your changes pass our quality checks:
 - **Components**: Functional components with hooks.
 - **Styling**: We use generic CSS/Tailwind (adhere to existing patterns).
 - **Architecture**: Follow the "Clean Architecture" separation in `src/main` vs `src/renderer`.
+- **SOLID, selectively**: Treat `SOLID` as a design check, not a ritual. In Cove, `S / I / D` usually matter most, `O` matters when extending providers/adapters/watchers, and `L` only matters when true subtype substitution exists.
 
 ---
 
