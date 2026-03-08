@@ -1,4 +1,4 @@
-import { CoveApi } from '../app/preload/index'
+import { CoveApi } from '../preload/index'
 
 declare global {
   interface Window {
