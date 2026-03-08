@@ -245,4 +245,77 @@ describe('WorkspaceSpaceRegionsOverlay space actions', () => {
     expect(await screen.findByText('Branch name contains unsupported characters.')).toBeVisible()
     expect(renameBranch).not.toHaveBeenCalled()
   })
+
+  it('does not reselect the rename input while typing', async () => {
+    const selectSpy = vi
+      .spyOn(HTMLInputElement.prototype, 'select')
+      .mockImplementation(() => undefined)
+    const focusSpy = vi
+      .spyOn(HTMLInputElement.prototype, 'focus')
+      .mockImplementation(() => undefined)
+
+    try {
+      Object.defineProperty(window, 'coveApi', {
+        configurable: true,
+        writable: true,
+        value: {
+          worktree: {
+            listWorktrees: vi.fn(async () => ({
+              worktrees: [
+                {
+                  path: '/tmp/repo/.cove/worktrees/wt-infra',
+                  head: '69a0358e3f7d88f1d8af8ff302d8b69bcd1b4d45',
+                  branch: 'feat/infra-pill',
+                },
+              ],
+            })),
+            renameBranch: vi.fn(async () => undefined),
+          },
+        },
+      })
+
+      render(
+        <WorkspaceSpaceRegionsOverlay
+          workspacePath="/tmp/repo"
+          spaceVisuals={[
+            {
+              id: 'space-1',
+              name: 'Infra',
+              directoryPath: '/tmp/repo/.cove/worktrees/wt-infra',
+              rect: { x: 0, y: 0, width: 200, height: 160 },
+              hasExplicitRect: true,
+            },
+          ]}
+          selectedSpaceIds={[]}
+          spaceFramePreview={null}
+          handleSpaceDragHandlePointerDown={() => undefined}
+          editingSpaceId={null}
+          spaceRenameInputRef={{ current: null }}
+          spaceRenameDraft=""
+          setSpaceRenameDraft={() => undefined}
+          commitSpaceRename={() => undefined}
+          cancelSpaceRename={() => undefined}
+          startSpaceRename={() => undefined}
+        />,
+      )
+
+      fireEvent.click(await screen.findByTestId('workspace-space-worktree-branch-space-1'))
+      expect(await screen.findByTestId('workspace-space-branch-rename-dialog')).toBeVisible()
+
+      await waitFor(() => {
+        expect(focusSpy).toHaveBeenCalledTimes(1)
+        expect(selectSpy).toHaveBeenCalledTimes(1)
+      })
+
+      const input = screen.getByTestId('workspace-space-branch-rename-input')
+      fireEvent.change(input, { target: { value: 'f' } })
+
+      await waitFor(() => {
+        expect(selectSpy).toHaveBeenCalledTimes(1)
+      })
+    } finally {
+      focusSpy.mockRestore()
+      selectSpy.mockRestore()
+    }
+  })
 })

@@ -121,16 +121,16 @@ export function WorkspaceSpaceRegionsOverlay({
   }, [refreshNonce, worktreeDirectories.length, worktreeDirectoriesKey, workspacePath])
 
   React.useEffect(() => {
-    if (!branchRename) {
+    if (!branchRename?.spaceId) {
       return
     }
 
     branchRenameInputRef.current?.focus()
     branchRenameInputRef.current?.select()
-  }, [branchRename])
+  }, [branchRename?.spaceId])
 
   React.useEffect(() => {
-    if (!branchRename) {
+    if (!branchRename?.spaceId) {
       return
     }
 
@@ -145,7 +145,7 @@ export function WorkspaceSpaceRegionsOverlay({
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [branchRename])
+  }, [branchRename?.isSubmitting, branchRename?.spaceId])
 
   const closeBranchRename = React.useCallback(() => {
     setBranchRename(previous => (previous?.isSubmitting ? previous : null))
