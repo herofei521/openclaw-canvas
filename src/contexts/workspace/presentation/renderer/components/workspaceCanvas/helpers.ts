@@ -1,4 +1,4 @@
-import type { Node, ReactFlowInstance } from '@xyflow/react'
+import type { Node, ReactFlowInstance } from '/react'
 import { AGENT_PROVIDER_LABEL, type AgentProvider } from '@contexts/settings/domain/agentSettings'
 import type { TaskPriority, TerminalNodeData, WorkspaceSpaceState } from '../../types'
 import { TASK_PRIORITIES } from './constants'
@@ -65,6 +65,89 @@ export function normalizeTaskPriority(value: unknown): TaskPriority {
 
 export function isAgentWorking(status: TerminalNodeData['status']): boolean {
   return status === 'running' || status === 'restoring'
+}
+
+export function isAgentActive(status: TerminalNodeData['status']): boolean {
+  return status === 'running' || status === 'standby' || status === 'restoring'
+}
+
+export function resolveSpaceDirectoryPath(
+  space: WorkspaceSpaceState | null,
+  workspacePath: string,
+): string {
+  return space && space.directoryPath.trim().length > 0 ? space.directoryPath : workspacePath
+}
+
+function resolveNodeExecutionDirectory(
+  node: Node<TerminalNodeData>,
+  workspacePath: string,
+): string {
+  if (node.data.kind === 'agent' && node.data.agent) {
+    const directory = node.data.agent.executionDirectory.trim()
+    return directory.length > 0 ? directory : workspacePath
+  }
+
+  if (typeof node.data.executionDirectory === 'string') {
+    const directory = node.data.executionDirectory.trim()
+    if (directory.length > 0) {
+      return directory
+    }
+  }
+
+  return workspacePath
+}
+
+export function validateSpaceTransfer(
+  nodeIds: string[],
+  nodes: Array<Node<TerminalNodeData>>,
+  targetSpace: WorkspaceSpaceState | null,
+  workspacePath: string,
+): string | null {
+  if (nodeIds.length === 0) {
+    return null
+  }
+
+  const nodeById = new Map(nodes.map(node => [node.id, node]))
+  const targetDirectory = resolveSpaceDirectoryPath(targetSpace, workspacePath)
+
+  for (const nodeId of nodeIds) {
+    const node = nodeById.get(nodeId)
+    if (!node) {
+      continue
+    }
+
+    if (node.data.kind === 'agent' && node.data.agent) {
+      if (resolveNodeExecutionDirectory(node, workspacePath) !== targetDirectory) {
+        return 'Agent windows cannot enter or leave a space with a different directory.'
+      }
+
+      continue
+    }
+
+    if (node.data.kind === 'terminal') {
+      if (resolveNodeExecutionDirectory(node, workspacePath) !== targetDirectory) {
+        return 'Terminal windows cannot enter or leave a space with a different directory.'
+      }
+
+      continue
+    }
+
+    if (node.data.kind !== 'task' || !node.data.task) {
+      continue
+    }
+
+    const linkedAgentNode = node.data.task.linkedAgentNodeId
+      ? nodeById.get(node.data.task.linkedAgentNodeId)
+      : null
+    const hasActiveLinkedAgent =
+      linkedAgentNode?.data.kind === 'agent' && isAgentActive(linkedAgentNode.data.status)
+
+    if (node.data.task.status === 'doing' || hasActiveLinkedAgent) {
+      return 'Tasks with active agents cannot be moved between spaces.'
+    }
+  }
+
+  return null
 }
 
 export function toAgentRuntimeLabel(status: TerminalNodeData['status']): string {

@@ -151,7 +151,6 @@ interface WorkspaceCanvasNodeTypesParams {
   openTaskEditorRef: MutableRefObject<(nodeId: string) => void>
   quickUpdateTaskTitleRef: MutableRefObject<QuickUpdateTaskTitle>
   quickUpdateTaskRequirementRef: MutableRefObject<QuickUpdateTaskRequirement>
-  openTaskAssignerRef: MutableRefObject<(nodeId: string) => void>
   runTaskAgentRef: MutableRefObject<(nodeId: string) => Promise<void>>
   resumeTaskAgentSessionRef: MutableRefObject<
     (taskNodeId: string, recordId: string) => Promise<void>
@@ -177,7 +176,6 @@ export function useWorkspaceCanvasNodeTypes({
   openTaskEditorRef,
   quickUpdateTaskTitleRef,
   quickUpdateTaskRequirementRef,
-  openTaskAssignerRef,
   runTaskAgentRef,
   resumeTaskAgentSessionRef,
   removeTaskAgentSessionRecordRef,
@@ -276,9 +274,6 @@ export function useWorkspaceCanvasNodeTypes({
             onQuickRequirementSave={requirement => {
               quickUpdateTaskRequirementRef.current(id, requirement)
             }}
-            onAssignAgent={() => {
-              openTaskAssignerRef.current(id)
-            }}
             onRunAgent={() => {
               void runTaskAgentRef.current(id)
             }}
@@ -308,7 +303,6 @@ export function useWorkspaceCanvasNodeTypes({
       workspacePath,
       terminalFontSize,
       updateNoteTextRef,
-      openTaskAssignerRef,
       openTaskEditorRef,
       quickUpdateTaskRequirementRef,
       quickUpdateTaskTitleRef,

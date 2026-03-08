@@ -5,12 +5,10 @@ import { TASK_STATUS_OPTIONS } from './helpers'
 export function TaskNodeFooter({
   status,
   onStatusChange,
-  onAssignAgent,
   onRunAgent,
 }: {
   status: TaskRuntimeStatus
   onStatusChange: (status: TaskRuntimeStatus) => void
-  onAssignAgent: () => void
   onRunAgent: () => void
 }): JSX.Element {
   return (
@@ -28,18 +26,6 @@ export function TaskNodeFooter({
           </option>
         ))}
       </select>
-
-      <button
-        type="button"
-        className="task-node__assign-agent"
-        data-testid="task-node-assign-agent"
-        onClick={event => {
-          event.stopPropagation()
-          onAssignAgent()
-        }}
-      >
-        Assign
-      </button>
 
       <button
         type="button"

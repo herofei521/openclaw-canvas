@@ -1,7 +1,7 @@
 import type { Node } from '@xyflow/react'
 import type { Point, Size, TerminalNodeData, TaskPriority } from '../../../types'
 import type { WorkspaceSpaceState } from '../../../types'
-import type { CreateNodeInput } from '../types'
+import type { CreateNodeInput, ShowWorkspaceCanvasMessage } from '../types'
 
 export interface UseWorkspaceCanvasNodesStoreParams {
   nodes: Node<TerminalNodeData>[]
@@ -9,6 +9,7 @@ export interface UseWorkspaceCanvasNodesStoreParams {
   onNodesChange: (nodes: Node<TerminalNodeData>[]) => void
   onSpacesChange: (spaces: WorkspaceSpaceState[]) => void
   onRequestPersistFlush?: () => void
+  onShowMessage?: ShowWorkspaceCanvasMessage
   defaultTerminalWindowScalePercent: number
 }
 

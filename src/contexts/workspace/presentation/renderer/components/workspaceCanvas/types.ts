@@ -11,8 +11,16 @@ import type {
 } from '../../types'
 import type { AgentSettings } from '@contexts/settings/domain/agentSettings'
 
+export type WorkspaceCanvasMessageTone = 'info' | 'warning' | 'error'
+
+export type ShowWorkspaceCanvasMessage = (
+  message: string,
+  tone?: WorkspaceCanvasMessageTone,
+) => void
+
 export interface WorkspaceCanvasProps {
   workspaceId: string
+  onShowMessage?: ShowWorkspaceCanvasMessage
   workspacePath: string
   worktreesRoot: string
   nodes: Node<TerminalNodeData>[]
@@ -131,13 +139,6 @@ export interface TaskEditorState {
   selectedTags: string[]
   autoGenerateTitle: boolean
   isGeneratingTitle: boolean
-  isSaving: boolean
-  error: string | null
-}
-
-export interface TaskAssignerState {
-  taskNodeId: string
-  selectedAgentNodeId: string
   isSaving: boolean
   error: string | null
 }

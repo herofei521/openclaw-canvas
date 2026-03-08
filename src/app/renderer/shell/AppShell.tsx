@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { SettingsPanel } from '@contexts/settings/presentation/renderer/SettingsPanel'
 import { AGENT_PROVIDER_LABEL, resolveAgentModel } from '@contexts/settings/domain/agentSettings'
 import { WorkspaceCanvas } from '@contexts/workspace/presentation/renderer/components/WorkspaceCanvas'
+import type { WorkspaceCanvasMessageTone } from '@contexts/workspace/presentation/renderer/components/workspaceCanvas/types'
 import type {
   WorkspaceViewport,
   WorkspaceState,
@@ -22,6 +23,12 @@ import {
   sanitizeWorkspaceSpaces,
 } from '@contexts/workspace/presentation/renderer/utils/workspaceSpaces'
 import { invalidateCachedTerminalScreenState } from '@contexts/workspace/presentation/renderer/components/terminalNode/screenStateCache'
+
+const APP_MESSAGE_LABEL: Record<WorkspaceCanvasMessageTone, string> = {
+  info: 'Info',
+  warning: 'Warning',
+  error: 'Error',
+}
 
 export default function App(): React.JSX.Element {
   const {
@@ -74,6 +81,33 @@ export default function App(): React.JSX.Element {
   const activeWorkspace = useMemo(
     () => workspaces.find(workspace => workspace.id === activeWorkspaceId) ?? null,
     [activeWorkspaceId, workspaces],
+  )
+
+  const [floatingMessage, setFloatingMessage] = useState<{
+    id: number
+    text: string
+    tone: WorkspaceCanvasMessageTone
+  } | null>(null)
+
+  useEffect(() => {
+    if (!floatingMessage) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setFloatingMessage(current => (current?.id === floatingMessage.id ? null : current))
+    }, 3200)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [floatingMessage])
+
+  const handleShowMessage = useCallback(
+    (message: string, tone: WorkspaceCanvasMessageTone = 'info'): void => {
+      setFloatingMessage({ id: Date.now(), text: message, tone })
+    },
+    [],
   )
 
   const activeProviderLabel = AGENT_PROVIDER_LABEL[agentSettings.defaultProvider]
@@ -380,6 +414,7 @@ export default function App(): React.JSX.Element {
           {activeWorkspace ? (
             <WorkspaceCanvas
               workspaceId={activeWorkspace.id}
+              onShowMessage={handleShowMessage}
               workspacePath={activeWorkspace.path}
               worktreesRoot={activeWorkspace.worktreesRoot}
               nodes={activeWorkspace.nodes}
@@ -416,6 +451,18 @@ export default function App(): React.JSX.Element {
           )}
         </main>
       </div>
+
+      {floatingMessage ? (
+        <div
+          className={`app-message app-message--${floatingMessage.tone}`}
+          data-testid="app-message"
+          role={floatingMessage.tone === 'error' ? 'alert' : 'status'}
+          aria-live={floatingMessage.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          <span className="app-message__label">{APP_MESSAGE_LABEL[floatingMessage.tone]}</span>
+          <span className="app-message__text">{floatingMessage.text}</span>
+        </div>
+      ) : null}
 
       {projectContextMenu ? (
         <ProjectContextMenu

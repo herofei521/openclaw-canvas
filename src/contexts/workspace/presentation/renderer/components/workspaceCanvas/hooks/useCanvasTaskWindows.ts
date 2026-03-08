@@ -2,7 +2,6 @@ import type { Node } from '@xyflow/react'
 import type { Point, TaskPriority, TerminalNodeData, WorkspaceSpaceState } from '../../../types'
 import type { ContextMenuState } from '../types'
 import type { WorkspaceCanvasActionRefs } from './useActionRefs'
-import { useWorkspaceCanvasTaskAssigner } from './useTaskAssigner'
 import { useWorkspaceCanvasTaskCreator } from './useTaskCreator'
 import { useWorkspaceCanvasTaskDeleteConfirmation } from './useTaskDeleteConfirmation'
 import { useWorkspaceCanvasTaskEditor } from './useTaskEditor'
@@ -79,17 +78,6 @@ export function useWorkspaceCanvasTaskWindows({
       openTaskEditorRef: actionRefs.openTaskEditorRef,
     })
 
-  const { taskAssigner, setTaskAssigner, closeTaskAssigner, applyTaskAssignment } =
-    useWorkspaceCanvasTaskAssigner({
-      nodesRef,
-      spacesRef,
-      onSpacesChange,
-      setNodes,
-      onRequestPersistFlush,
-      setContextMenu,
-      openTaskAssignerRef: actionRefs.openTaskAssignerRef,
-    })
-
   const { taskDeleteConfirmation, setTaskDeleteConfirmation, confirmTaskDelete } =
     useWorkspaceCanvasTaskDeleteConfirmation({
       nodesRef,
@@ -109,10 +97,6 @@ export function useWorkspaceCanvasTaskWindows({
     closeTaskEditor,
     generateTaskEditorTitle,
     saveTaskEdits,
-    taskAssigner,
-    setTaskAssigner,
-    closeTaskAssigner,
-    applyTaskAssignment,
     taskDeleteConfirmation,
     setTaskDeleteConfirmation,
     confirmTaskDelete,

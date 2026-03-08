@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Node, ReactFlowInstance } from '@xyflow/react'
 import type { TerminalNodeData, WorkspaceSpaceState } from '../../../types'
-import type { ContextMenuState, EmptySelectionPromptState, SpaceVisual } from '../types'
+import type {
+  ContextMenuState,
+  EmptySelectionPromptState,
+  ShowWorkspaceCanvasMessage,
+  SpaceVisual,
+} from '../types'
 import { computeSpaceRectFromNodes } from '../../../utils/spaceLayout'
 import { useWorkspaceCanvasCreateSpace } from './useSpaces.createSpace'
 
@@ -23,6 +28,7 @@ interface UseWorkspaceCanvasSpacesParams {
   onRequestPersistFlush?: () => void
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
   setEmptySelectionPrompt: React.Dispatch<React.SetStateAction<EmptySelectionPromptState | null>>
+  onShowMessage?: ShowWorkspaceCanvasMessage
 }
 
 export function useWorkspaceCanvasSpaces({
@@ -40,6 +46,7 @@ export function useWorkspaceCanvasSpaces({
   onRequestPersistFlush,
   setContextMenu,
   setEmptySelectionPrompt,
+  onShowMessage,
 }: UseWorkspaceCanvasSpacesParams): {
   editingSpaceId: string | null
   spaceRenameDraft: string
@@ -154,6 +161,7 @@ export function useWorkspaceCanvasSpaces({
     setContextMenu,
     setEmptySelectionPrompt,
     cancelSpaceRename,
+    onShowMessage,
   })
 
   const startSpaceRename = useCallback(

@@ -1,8 +1,12 @@
 import { useCallback } from 'react'
 import type { Node } from '@xyflow/react'
 import type { TerminalNodeData, WorkspaceSpaceRect, WorkspaceSpaceState } from '../../../types'
-import type { ContextMenuState, EmptySelectionPromptState } from '../types'
-import { isAgentWorking, sanitizeSpaces } from '../helpers'
+import type {
+  ContextMenuState,
+  EmptySelectionPromptState,
+  ShowWorkspaceCanvasMessage,
+} from '../types'
+import { sanitizeSpaces, validateSpaceTransfer } from '../helpers'
 import {
   computeSpaceRectFromNodes,
   pushAwayLayout,
@@ -25,6 +29,7 @@ export function useWorkspaceCanvasCreateSpace({
   setContextMenu,
   setEmptySelectionPrompt,
   cancelSpaceRename,
+  onShowMessage,
 }: {
   workspacePath: string
   nodesRef: React.MutableRefObject<Node<TerminalNodeData>[]>
@@ -36,119 +41,30 @@ export function useWorkspaceCanvasCreateSpace({
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
   setEmptySelectionPrompt: React.Dispatch<React.SetStateAction<EmptySelectionPromptState | null>>
   cancelSpaceRename: () => void
+  onShowMessage?: ShowWorkspaceCanvasMessage
 }): {
   createSpaceFromSelectedNodes: () => void
 } {
-  const resolveNodeDirectoryPath = useCallback(
-    (nodeId: string): string => {
-      const node = nodesRef.current.find(item => item.id === nodeId)
-      if (!node) {
-        return workspacePath
-      }
-
-      if (node.data.kind === 'agent') {
-        return node.data.agent?.executionDirectory ?? workspacePath
-      }
-
-      if (node.data.kind === 'task' && node.data.task?.linkedAgentNodeId) {
-        const linkedAgent = nodesRef.current.find(
-          candidate =>
-            candidate.id === node.data.task?.linkedAgentNodeId && candidate.data.kind === 'agent',
-        )
-        if (linkedAgent?.data.agent?.executionDirectory) {
-          return linkedAgent.data.agent.executionDirectory
-        }
-      }
-
-      return workspacePath
-    },
-    [nodesRef, workspacePath],
-  )
-
-  const expandSelectionWithLinkedAgents = useCallback(
-    (selectedIds: string[]): string[] => {
-      const expanded = new Set(selectedIds)
-
-      for (const nodeId of selectedIds) {
-        const node = nodesRef.current.find(item => item.id === nodeId)
-        if (!node || node.data.kind !== 'task' || !node.data.task?.linkedAgentNodeId) {
-          continue
-        }
-
-        expanded.add(node.data.task.linkedAgentNodeId)
-      }
-
-      return [...expanded]
-    },
-    [nodesRef],
-  )
-
-  const validateSelectionForTargetDirectory = useCallback(
-    (selectedIds: string[], targetDirectoryPath: string): string | null => {
-      for (const nodeId of selectedIds) {
-        const node = nodesRef.current.find(item => item.id === nodeId)
-        if (!node) {
-          continue
-        }
-
-        if (node.data.kind === 'agent') {
-          const nodeDirectory = resolveNodeDirectoryPath(node.id)
-          if (nodeDirectory !== targetDirectoryPath) {
-            return isAgentWorking(node.data.status)
-              ? 'Running agents can only move to spaces with the same directory.'
-              : 'Agents cannot be moved to a space with a different directory.'
-          }
-          continue
-        }
-
-        if (node.data.kind !== 'task' || !node.data.task) {
-          continue
-        }
-
-        const linkedAgentNodeId = node.data.task.linkedAgentNodeId
-        if (linkedAgentNodeId) {
-          const linkedAgent = nodesRef.current.find(
-            candidate => candidate.id === linkedAgentNodeId && candidate.data.kind === 'agent',
-          )
-          if (linkedAgent) {
-            const linkedDirectory = resolveNodeDirectoryPath(linkedAgent.id)
-            if (linkedDirectory !== targetDirectoryPath) {
-              return isAgentWorking(linkedAgent.data.status)
-                ? 'Tasks linked to running agents can only move to spaces with the same directory.'
-                : 'Tasks linked to agents in another directory cannot be moved to this space.'
-            }
-          }
-        }
-
-        if (node.data.task.status === 'doing' && targetDirectoryPath !== workspacePath) {
-          return 'Running tasks can only move to spaces with the same directory.'
-        }
-      }
-
-      return null
-    },
-    [nodesRef, resolveNodeDirectoryPath, workspacePath],
-  )
-
   const createSpace = useCallback(
     (payload: { nodeIds: string[]; rect: WorkspaceSpaceRect | null }) => {
-      const normalizedNodeIds = expandSelectionWithLinkedAgents(payload.nodeIds).filter(nodeId =>
+      const normalizedNodeIds = payload.nodeIds.filter(nodeId =>
         nodesRef.current.some(node => node.id === nodeId),
       )
       if (normalizedNodeIds.length === 0) {
-        window.alert('Space must include at least one task or agent.')
+        onShowMessage?.('Space must include at least one task or agent.', 'warning')
         setContextMenu(null)
         setEmptySelectionPrompt(null)
         return
       }
 
-      const targetDirectoryPath = workspacePath
-      const validationError = validateSelectionForTargetDirectory(
+      const validationError = validateSpaceTransfer(
         normalizedNodeIds,
-        targetDirectoryPath,
+        nodesRef.current,
+        null,
+        workspacePath,
       )
       if (validationError) {
-        window.alert(validationError)
+        onShowMessage?.(validationError, 'warning')
         return
       }
 
@@ -186,7 +102,7 @@ export function useWorkspaceCanvasCreateSpace({
       const nextSpace: WorkspaceSpaceState = {
         id: nextSpaceId,
         name: normalizedName,
-        directoryPath: targetDirectoryPath,
+        directoryPath: workspacePath,
         nodeIds: normalizedNodeIds,
         rect,
       }
@@ -382,15 +298,14 @@ export function useWorkspaceCanvasCreateSpace({
     },
     [
       cancelSpaceRename,
-      expandSelectionWithLinkedAgents,
       nodesRef,
       onRequestPersistFlush,
+      onShowMessage,
       onSpacesChange,
       setContextMenu,
       setEmptySelectionPrompt,
       setNodes,
       spacesRef,
-      validateSelectionForTargetDirectory,
       workspacePath,
     ],
   )

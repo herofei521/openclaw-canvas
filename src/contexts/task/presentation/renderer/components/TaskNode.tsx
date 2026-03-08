@@ -42,7 +42,6 @@ interface TaskNodeProps {
   onOpenEditor: () => void
   onQuickTitleSave: (title: string) => void
   onQuickRequirementSave: (requirement: string) => void
-  onAssignAgent: () => void
   onRunAgent: () => void
   onResize: (size: Size) => void
   onStatusChange: (status: TaskRuntimeStatus) => void
@@ -70,7 +69,6 @@ export function TaskNode({
   onOpenEditor,
   onQuickTitleSave,
   onQuickRequirementSave,
-  onAssignAgent,
   onRunAgent,
   onResize,
   onStatusChange,
@@ -390,12 +388,7 @@ export function TaskNode({
         onRemoveAgentSessionRecord={onRemoveAgentSessionRecord}
       />
 
-      <TaskNodeFooter
-        status={status}
-        onStatusChange={onStatusChange}
-        onAssignAgent={onAssignAgent}
-        onRunAgent={onRunAgent}
-      />
+      <TaskNodeFooter status={status} onStatusChange={onStatusChange} onRunAgent={onRunAgent} />
 
       <button
         type="button"

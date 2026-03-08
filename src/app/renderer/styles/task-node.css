@@ -364,20 +364,6 @@
   font-size: calc(12px * var(--cove-ui-font-scale));
 }
 
-.task-node__assign-agent {
-  border: 1px solid rgba(106, 140, 231, 0.45);
-  background: rgba(17, 30, 55, 0.88);
-  color: #d6e6ff;
-  border-radius: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-  font-size: calc(12px * var(--cove-ui-font-scale));
-}
-
-.task-node__assign-agent:hover {
-  background: rgba(36, 56, 98, 0.95);
-}
-
 .task-node__run-agent {
   border: 1px solid rgba(123, 157, 255, 0.5);
   background: rgba(58, 91, 182, 0.32);

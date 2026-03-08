@@ -22,7 +22,6 @@ import type {
   SelectionDraftState,
   SpaceWorktreeDialogState,
   WorkspaceCanvasProps,
-  TaskAssignerState,
   TaskCreatorState,
   TaskDeleteConfirmationState,
   TaskEditorState,
@@ -33,7 +32,6 @@ import { WorkspaceSelectionDraftOverlay } from './view/WorkspaceSelectionDraftOv
 import { WorkspaceSpaceActionMenu } from './view/WorkspaceSpaceActionMenu'
 import { WorkspaceSpaceRegionsOverlay } from './view/WorkspaceSpaceRegionsOverlay'
 import { WorkspaceSpaceSwitcher } from './view/WorkspaceSpaceSwitcher'
-import { TaskAssignerWindow } from './windows/TaskAssignerWindow'
 import { TaskCreatorWindow } from './windows/TaskCreatorWindow'
 import { TaskDeleteConfirmationWindow } from './windows/TaskDeleteConfirmationWindow'
 import { TaskEditorWindow } from './windows/TaskEditorWindow'
@@ -126,18 +124,6 @@ interface WorkspaceCanvasViewProps {
   closeTaskEditor: () => void
   generateTaskEditorTitle: () => Promise<void>
   saveTaskEdits: () => Promise<void>
-
-  taskAssigner: TaskAssignerState | null
-  activeTaskTitleForAssigner: string | null
-  taskAssignerAgentOptions: Array<{
-    nodeId: string
-    title: string
-    status: TerminalNodeData['status']
-    linkedTaskTitle: string | null
-  }>
-  setTaskAssigner: React.Dispatch<React.SetStateAction<TaskAssignerState | null>>
-  closeTaskAssigner: () => void
-  applyTaskAssignment: () => Promise<void>
 
   taskDeleteConfirmation: TaskDeleteConfirmationState | null
   setTaskDeleteConfirmation: React.Dispatch<
@@ -245,12 +231,6 @@ export function WorkspaceCanvasView({
   closeTaskEditor,
   generateTaskEditorTitle,
   saveTaskEdits,
-  taskAssigner,
-  activeTaskTitleForAssigner,
-  taskAssignerAgentOptions,
-  setTaskAssigner,
-  closeTaskAssigner,
-  applyTaskAssignment,
   taskDeleteConfirmation,
   setTaskDeleteConfirmation,
   confirmTaskDelete,
@@ -444,15 +424,6 @@ export function WorkspaceCanvasView({
         closeTaskEditor={closeTaskEditor}
         generateTaskEditorTitle={generateTaskEditorTitle}
         saveTaskEdits={saveTaskEdits}
-      />
-
-      <TaskAssignerWindow
-        taskAssigner={taskAssigner}
-        activeTaskTitle={activeTaskTitleForAssigner}
-        agentOptions={taskAssignerAgentOptions}
-        setTaskAssigner={setTaskAssigner}
-        closeTaskAssigner={closeTaskAssigner}
-        applyTaskAssignment={applyTaskAssignment}
       />
 
       <TaskDeleteConfirmationWindow

@@ -63,7 +63,6 @@ describe('TaskNode agent sessions', () => {
         onOpenEditor={() => undefined}
         onQuickTitleSave={() => undefined}
         onQuickRequirementSave={() => undefined}
-        onAssignAgent={() => undefined}
         onRunAgent={() => undefined}
         onResize={() => undefined}
         onStatusChange={() => undefined}
@@ -125,7 +124,6 @@ describe('TaskNode agent sessions', () => {
         onOpenEditor={() => undefined}
         onQuickTitleSave={() => undefined}
         onQuickRequirementSave={() => undefined}
-        onAssignAgent={() => undefined}
         onRunAgent={() => undefined}
         onResize={() => undefined}
         onStatusChange={() => undefined}

@@ -8,18 +8,16 @@ import {
 } from '@contexts/settings/domain/agentSettings'
 import type { TerminalNodeData, WorkspaceSpaceState } from '../../../types'
 import { useWorkspaceCanvasTaskAgentEdges } from './useTaskAgentEdges'
-import { useWorkspaceCanvasTaskAssignerOptions } from './useTaskAssignerOptions'
 import { useWorkspaceCanvasViewportMoveEnd } from './useViewportMoveEnd'
 import { useWorkspaceCanvasSpaceUi } from './useSpaceUi'
 import { resolveWorkspaceMinimapNodeColor } from '../minimap'
-import type { ContextMenuState, EmptySelectionPromptState, TaskAssignerState } from '../types'
+import type { ContextMenuState, EmptySelectionPromptState } from '../types'
 
 export function useWorkspaceCanvasViewModel({
   agentSettings,
   viewportRef,
   onViewportChange,
   flowNodes,
-  taskAssigner,
   contextMenu,
   setContextMenu,
   setEmptySelectionPrompt,
@@ -35,7 +33,6 @@ export function useWorkspaceCanvasViewModel({
   viewportRef: MutableRefObject<Viewport>
   onViewportChange: (viewport: Viewport) => void
   flowNodes: Node<TerminalNodeData>[]
-  taskAssigner: TaskAssignerState | null
   contextMenu: ContextMenuState | null
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState | null>>
   setEmptySelectionPrompt: React.Dispatch<React.SetStateAction<EmptySelectionPromptState | null>>
@@ -54,13 +51,6 @@ export function useWorkspaceCanvasViewModel({
   taskTitleModelLabel: string
   handleViewportMoveEnd: (_event: MouseEvent | TouchEvent | null, nextViewport: Viewport) => void
   minimapNodeColor: typeof resolveWorkspaceMinimapNodeColor
-  taskAssignerAgentOptions: Array<{
-    nodeId: string
-    title: string
-    status: TerminalNodeData['status']
-    linkedTaskTitle: string | null
-  }>
-  activeTaskForAssigner: Node<TerminalNodeData> | null
   taskAgentEdges: ReturnType<typeof useWorkspaceCanvasTaskAgentEdges>
   spaceUi: ReturnType<typeof useWorkspaceCanvasSpaceUi>
 } {
@@ -68,13 +58,6 @@ export function useWorkspaceCanvasViewModel({
   const taskTitleModelLabel = resolveTaskTitleModel(agentSettings) ?? 'default model'
   const handleViewportMoveEnd = useWorkspaceCanvasViewportMoveEnd({ viewportRef, onViewportChange })
   const minimapNodeColor = resolveWorkspaceMinimapNodeColor
-
-  const { taskAssignerAgentOptions, activeTaskForAssigner } = useWorkspaceCanvasTaskAssignerOptions(
-    {
-      nodes: flowNodes,
-      taskAssigner,
-    },
-  )
 
   const taskAgentEdges = useWorkspaceCanvasTaskAgentEdges(flowNodes)
 
@@ -97,18 +80,14 @@ export function useWorkspaceCanvasViewModel({
       taskTitleModelLabel,
       handleViewportMoveEnd,
       minimapNodeColor,
-      taskAssignerAgentOptions,
-      activeTaskForAssigner,
       taskAgentEdges,
       spaceUi,
     }),
     [
-      activeTaskForAssigner,
       handleViewportMoveEnd,
       minimapNodeColor,
       spaceUi,
       taskAgentEdges,
-      taskAssignerAgentOptions,
       taskTitleModelLabel,
       taskTitleProviderLabel,
     ],

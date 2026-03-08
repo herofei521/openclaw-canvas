@@ -4,7 +4,7 @@ import { resolveAgentModel, type AgentSettings } from '@contexts/settings/domain
 import type { AgentNodeData, Point, TerminalNodeData, WorkspaceSpaceState } from '../../../types'
 import { clearResumeSessionBinding } from '../../../utils/agentResumeBinding'
 import { sanitizeSpaces, toErrorMessage } from '../helpers'
-import type { ContextMenuState, CreateNodeInput } from '../types'
+import type { ContextMenuState, CreateNodeInput, ShowWorkspaceCanvasMessage } from '../types'
 import { expandSpaceToFitOwnedNodesAndPushAway } from '../../../utils/spaceAutoResize'
 
 interface UseAgentLauncherParams {
@@ -18,6 +18,7 @@ interface UseAgentLauncherParams {
   spacesRef: React.MutableRefObject<WorkspaceSpaceState[]>
   onSpacesChange: (spaces: WorkspaceSpaceState[]) => void
   onRequestPersistFlush?: () => void
+  onShowMessage?: ShowWorkspaceCanvasMessage
   contextMenu: ContextMenuState | null
   setContextMenu: (next: ContextMenuState | null) => void
   createNodeForSession: (input: CreateNodeInput) => Promise<Node<TerminalNodeData> | null>
@@ -35,6 +36,7 @@ export function useWorkspaceCanvasAgentLauncher({
   spacesRef,
   onSpacesChange,
   onRequestPersistFlush,
+  onShowMessage,
   contextMenu,
   setContextMenu,
   createNodeForSession,
@@ -182,7 +184,7 @@ export function useWorkspaceCanvasAgentLauncher({
         onSpacesChange(pushedSpaces)
         onRequestPersistFlush?.()
       } catch (error) {
-        window.alert(`Agent 启动失败：${toErrorMessage(error)}`)
+        onShowMessage?.(`Agent 启动失败：${toErrorMessage(error)}`, 'error')
       }
     })()
   }, [
@@ -192,6 +194,7 @@ export function useWorkspaceCanvasAgentLauncher({
     createNodeForSession,
     nodesRef,
     onRequestPersistFlush,
+    onShowMessage,
     onSpacesChange,
     setContextMenu,
     setNodes,
