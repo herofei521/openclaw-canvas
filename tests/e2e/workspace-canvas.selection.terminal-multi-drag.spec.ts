@@ -1,5 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
-import { clearAndSeedWorkspace, launchApp, readCanvasViewport, storageKey } from './workspace-canvas.helpers'
+import {
+  clearAndSeedWorkspace,
+  launchApp,
+  readCanvasViewport,
+  storageKey,
+} from './workspace-canvas.helpers'
 
 test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
   const readNodePositions = async (
@@ -84,8 +89,6 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
       await expect(leftTerminal).toBeVisible()
       await expect(rightTerminal).toBeVisible()
 
-      const leftBody = leftTerminal.locator('.terminal-node__terminal')
-      const rightBody = rightTerminal.locator('.terminal-node__terminal')
       const leftHeader = leftTerminal.locator('.terminal-node__header')
       const rightHeader = rightTerminal.locator('.terminal-node__header')
 
@@ -105,7 +108,7 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
         throw new Error('node positions unavailable before multi-drag')
       }
 
-      const beforeViewport = await readCanvasViewport(window)
+      await readCanvasViewport(window)
 
       const pane = window.locator('.workspace-canvas .react-flow__pane')
       await expect(pane).toBeVisible()
@@ -126,24 +129,6 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
       const endX = Math.min(paneBox.x + paneBox.width - 60, startX + 240)
       const endY = Math.min(paneBox.y + paneBox.height - 60, startY + 220)
 
-      const dragHitTarget = await window.evaluate(
-        ({ x, y }) => {
-          const el = document.elementFromPoint(x, y)
-          if (!el) {
-            return null
-          }
-
-          return {
-            tagName: el.tagName,
-            className: el.className,
-            testId: el.getAttribute('data-testid'),
-            hasNoDragAncestor: Boolean(el.closest('.nodrag')),
-          }
-        },
-        { x: startX, y: startY },
-      )
-      console.log('multi-drag hit target', { startX, startY, dragHitTarget })
-
       await window.waitForTimeout(150)
 
       await window.mouse.move(startX, startY)
@@ -151,21 +136,9 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
       await window.mouse.move(endX, endY, { steps: 12 })
       await window.mouse.up()
 
-      const afterViewport = await readCanvasViewport(window)
-      console.log('multi-drag viewport delta', {
-        x: afterViewport.x - beforeViewport.x,
-        y: afterViewport.y - beforeViewport.y,
-        zoom: afterViewport.zoom - beforeViewport.zoom,
-      })
-
-      const afterLeftBox = await leftTerminal.boundingBox()
-      const afterRightBox = await rightTerminal.boundingBox()
-      if (afterLeftBox && afterRightBox) {
-        console.log('multi-drag box delta', {
-          left: { x: afterLeftBox.x - beforeLeftBox.x, y: afterLeftBox.y - beforeLeftBox.y },
-          right: { x: afterRightBox.x - beforeRightBox.x, y: afterRightBox.y - beforeRightBox.y },
-        })
-      }
+      await readCanvasViewport(window)
+      await leftTerminal.boundingBox()
+      await rightTerminal.boundingBox()
 
       await expect
         .poll(async () => {
@@ -249,14 +222,8 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
       const selectNodeByMarquee = async (targetBox: NonNullable<typeof leftBox>) => {
         const startX = Math.max(paneBox.x + 40, targetBox.x - 24)
         const startY = Math.max(paneBox.y + 40, targetBox.y - 24)
-        const endX = Math.min(
-          paneBox.x + paneBox.width - 40,
-          targetBox.x + targetBox.width - 24,
-        )
-        const endY = Math.min(
-          paneBox.y + paneBox.height - 120,
-          targetBox.y + targetBox.height - 24,
-        )
+        const endX = Math.min(paneBox.x + paneBox.width - 40, targetBox.x + targetBox.width - 24)
+        const endY = Math.min(paneBox.y + paneBox.height - 120, targetBox.y + targetBox.height - 24)
 
         await window.keyboard.down('Shift')
         await window.mouse.move(startX, startY)
@@ -274,7 +241,9 @@ test.describe('Workspace Canvas - Selection (Terminal Multi Drag)', () => {
 
       await expect(window.locator('.react-flow__node.selected')).toHaveCount(2)
 
-      const rightOverlay = rightTerminal.locator('[data-testid="terminal-node-selected-drag-overlay"]')
+      const rightOverlay = rightTerminal.locator(
+        '[data-testid="terminal-node-selected-drag-overlay"]',
+      )
       await expect(rightOverlay).toBeVisible()
 
       const before = await readNodePositions(window)
