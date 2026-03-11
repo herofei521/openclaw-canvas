@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { Node, ReactFlowInstance } from '@xyflow/react'
 import type { Size, TaskRuntimeStatus, TerminalNodeData } from '../../../types'
 import { focusNodeInViewport } from '../helpers'
@@ -114,39 +114,39 @@ export function useWorkspaceCanvasSyncActionRefs({
   nodesRef,
   reactFlow,
 }: SyncActionRefsParams): void {
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.closeNodeRef.current = closeNode
   }, [actionRefs.closeNodeRef, closeNode])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.resizeNodeRef.current = resizeNode
   }, [actionRefs.resizeNodeRef, resizeNode])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.updateNoteTextRef.current = (nodeId, text) => {
       updateNoteText(nodeId, text)
     }
   }, [actionRefs.updateNoteTextRef, updateNoteText])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.updateNodeScrollbackRef.current = (nodeId, scrollback) => {
       updateNodeScrollback(nodeId, scrollback)
     }
   }, [actionRefs.updateNodeScrollbackRef, updateNodeScrollback])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.updateTerminalTitleRef.current = (nodeId, title) => {
       updateTerminalTitle(nodeId, title)
     }
   }, [actionRefs.updateTerminalTitleRef, updateTerminalTitle])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.renameTerminalTitleRef.current = (nodeId, title) => {
       renameTerminalTitle(nodeId, title)
     }
   }, [actionRefs.renameTerminalTitleRef, renameTerminalTitle])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     actionRefs.normalizeViewportForTerminalInteractionRef.current = (nodeId: string) => {
       if (!normalizeZoomOnTerminalClick) {
         return
