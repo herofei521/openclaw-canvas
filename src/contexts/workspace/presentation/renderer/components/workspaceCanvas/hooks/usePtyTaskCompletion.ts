@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getPtyEventHub } from '@app/renderer/shell/utils/ptyEventHub'
 import type { Node } from '@xyflow/react'
 import type { TerminalNodeData } from '../../../types'
 
@@ -13,110 +14,92 @@ export function useWorkspaceCanvasPtyTaskCompletion({
   onRequestPersistFlush?: () => void
 }): void {
   useEffect(() => {
-    const ptyWithOptionalState = window.opencoveApi.pty as typeof window.opencoveApi.pty & {
-      onState?:
-        | ((
-            listener: (event: { sessionId: string; state: 'working' | 'standby' }) => void,
-          ) => () => void)
-        | undefined
-      onMetadata?:
-        | ((
-            listener: (event: { sessionId: string; resumeSessionId: string | null }) => void,
-          ) => () => void)
-        | undefined
-    }
+    const ptyEventHub = getPtyEventHub()
 
-    const unsubscribeState =
-      typeof ptyWithOptionalState.onState === 'function'
-        ? ptyWithOptionalState.onState(event => {
-            setNodes(prevNodes =>
-              prevNodes.map(node => {
-                if (node.data.kind !== 'agent' || node.data.sessionId !== event.sessionId) {
-                  return node
-                }
+    const unsubscribeState = ptyEventHub.onState(event => {
+      setNodes(prevNodes =>
+        prevNodes.map(node => {
+          if (node.data.kind !== 'agent' || node.data.sessionId !== event.sessionId) {
+            return node
+          }
 
-                if (
-                  node.data.status === 'failed' ||
-                  node.data.status === 'stopped' ||
-                  node.data.status === 'exited'
-                ) {
-                  return node
-                }
+          if (
+            node.data.status === 'failed' ||
+            node.data.status === 'stopped' ||
+            node.data.status === 'exited'
+          ) {
+            return node
+          }
 
-                const nextStatus = event.state === 'standby' ? 'standby' : 'running'
-                if (node.data.status === nextStatus) {
-                  return node
-                }
+          const nextStatus = event.state === 'standby' ? 'standby' : 'running'
+          if (node.data.status === nextStatus) {
+            return node
+          }
 
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    status: nextStatus,
-                  },
-                }
-              }),
-            )
-          })
-        : () => undefined
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: nextStatus,
+            },
+          }
+        }),
+      )
+    })
 
-    const unsubscribeMetadata =
-      typeof ptyWithOptionalState.onMetadata === 'function'
-        ? ptyWithOptionalState.onMetadata(event => {
-            let didChange = false
+    const unsubscribeMetadata = ptyEventHub.onMetadata(event => {
+      let didChange = false
 
-            setNodes(prevNodes => {
-              const nextNodes = prevNodes.map(node => {
-                if (
-                  node.data.kind !== 'agent' ||
-                  node.data.sessionId !== event.sessionId ||
-                  !node.data.agent
-                ) {
-                  return node
-                }
+      setNodes(prevNodes => {
+        const nextNodes = prevNodes.map(node => {
+          if (
+            node.data.kind !== 'agent' ||
+            node.data.sessionId !== event.sessionId ||
+            !node.data.agent
+          ) {
+            return node
+          }
 
-                const nextResumeSessionId =
-                  typeof event.resumeSessionId === 'string' &&
-                  event.resumeSessionId.trim().length > 0
-                    ? event.resumeSessionId
-                    : null
-                const nextResumeSessionIdVerified = nextResumeSessionId !== null
+          const nextResumeSessionId =
+            typeof event.resumeSessionId === 'string' && event.resumeSessionId.trim().length > 0
+              ? event.resumeSessionId
+              : null
+          const nextResumeSessionIdVerified = nextResumeSessionId !== null
 
-                if (
-                  node.data.agent.resumeSessionId === nextResumeSessionId &&
-                  node.data.agent.resumeSessionIdVerified === nextResumeSessionIdVerified
-                ) {
-                  return node
-                }
+          if (
+            node.data.agent.resumeSessionId === nextResumeSessionId &&
+            node.data.agent.resumeSessionIdVerified === nextResumeSessionIdVerified
+          ) {
+            return node
+          }
 
-                if (nextResumeSessionId === null) {
-                  return node
-                }
+          if (nextResumeSessionId === null) {
+            return node
+          }
 
-                didChange = true
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    agent: {
-                      ...node.data.agent,
-                      resumeSessionId: nextResumeSessionId,
-                      resumeSessionIdVerified: true,
-                    },
-                  },
-                }
-              })
+          didChange = true
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              agent: {
+                ...node.data.agent,
+                resumeSessionId: nextResumeSessionId,
+                resumeSessionIdVerified: true,
+              },
+            },
+          }
+        })
 
-              return didChange ? nextNodes : prevNodes
-            })
+        return didChange ? nextNodes : prevNodes
+      })
 
-            if (didChange) {
-              onRequestPersistFlush?.()
-            }
-          })
-        : () => undefined
+      if (didChange) {
+        onRequestPersistFlush?.()
+      }
+    })
 
-    const unsubscribeExit = window.opencoveApi.pty.onExit(event => {
+    const unsubscribeExit = ptyEventHub.onExit(event => {
       let didChange = false
 
       setNodes(prevNodes => {

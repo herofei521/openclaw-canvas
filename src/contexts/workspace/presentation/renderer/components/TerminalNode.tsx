@@ -4,6 +4,7 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
+import { getPtyEventHub } from '@app/renderer/shell/utils/ptyEventHub'
 import { TERMINAL_LAYOUT_SYNC_EVENT } from './terminalNode/constants'
 import {
   createTerminalCommandInputState,
@@ -12,7 +13,9 @@ import {
 import { createPtyWriteQueue, registerXtermPasteGuards } from './terminalNode/inputBridge'
 import { mergeScrollbackSnapshots, resolveScrollbackDelta } from './terminalNode/scrollback'
 import {
+  clearCachedTerminalScreenStateInvalidation,
   getCachedTerminalScreenState,
+  isCachedTerminalScreenStateInvalidated,
   setCachedTerminalScreenState,
 } from './terminalNode/screenStateCache'
 import { TerminalNodeHeader } from './terminalNode/TerminalNodeHeader'
@@ -199,12 +202,9 @@ export function TerminalNode({
     let isHydrating = true
     const bufferedDataChunks: string[] = []
     let bufferedExitCode: number | null = null
+    const ptyEventHub = getPtyEventHub()
 
-    const unsubscribeData = window.opencoveApi.pty.onData(event => {
-      if (event.sessionId !== sessionId) {
-        return
-      }
-
+    const unsubscribeData = ptyEventHub.onSessionData(sessionId, event => {
       if (isHydrating) {
         bufferedDataChunks.push(event.data)
         return
@@ -215,11 +215,7 @@ export function TerminalNode({
       markScrollbackDirty()
     })
 
-    const unsubscribeExit = window.opencoveApi.pty.onExit(event => {
-      if (event.sessionId !== sessionId) {
-        return
-      }
-
+    const unsubscribeExit = ptyEventHub.onSessionExit(sessionId, event => {
       if (isHydrating) {
         bufferedExitCode = event.exitCode
         return
@@ -348,7 +344,9 @@ export function TerminalNode({
     window.addEventListener(TERMINAL_LAYOUT_SYNC_EVENT, handleLayoutSync)
 
     return () => {
-      if (isTerminalHydratedRef.current) {
+      const isInvalidated = isCachedTerminalScreenStateInvalidated(nodeId, sessionId)
+
+      if (!isInvalidated && isTerminalHydratedRef.current) {
         const serializedScreen = serializeAddon.serialize()
         if (serializedScreen.length > 0) {
           setCachedTerminalScreenState(nodeId, {
@@ -373,7 +371,11 @@ export function TerminalNode({
       unsubscribeExit()
       disposeXtermPasteGuards()
       ptyWriteQueue.dispose()
-      disposeScrollbackPublish()
+      if (isInvalidated) {
+        clearCachedTerminalScreenStateInvalidation(nodeId, sessionId)
+      } else {
+        disposeScrollbackPublish()
+      }
       terminal.dispose()
       terminalRef.current = null
       fitAddonRef.current = null

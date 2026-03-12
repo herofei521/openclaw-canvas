@@ -4,6 +4,7 @@ import type {
   TerminalNodeData,
   WorkspaceState,
 } from '@contexts/workspace/presentation/renderer/types'
+import { getPtyEventHub } from '../utils/ptyEventHub'
 import { useAppStore } from '../store/useAppStore'
 
 function shouldIgnoreAgentStatusUpdate(status: TerminalNodeData['status']): boolean {
@@ -164,7 +165,9 @@ export function usePtyWorkspaceRuntimeSync({
   }, [activeWorkspaceId])
 
   useEffect(() => {
-    const unsubscribeState = window.opencoveApi.pty.onState(event => {
+    const ptyEventHub = getPtyEventHub()
+
+    const unsubscribeState = ptyEventHub.onState(event => {
       let didChange = false
 
       setWorkspaces(previous => {
@@ -195,7 +198,7 @@ export function usePtyWorkspaceRuntimeSync({
       }
     })
 
-    const unsubscribeMetadata = window.opencoveApi.pty.onMetadata(event => {
+    const unsubscribeMetadata = ptyEventHub.onMetadata(event => {
       const nextResumeSessionId = normalizeResumeSessionId(event.resumeSessionId)
       if (!nextResumeSessionId) {
         return
@@ -244,7 +247,7 @@ export function usePtyWorkspaceRuntimeSync({
       }
     })
 
-    const unsubscribeExit = window.opencoveApi.pty.onExit(event => {
+    const unsubscribeExit = ptyEventHub.onExit(event => {
       let didChange = false
       const now = new Date().toISOString()
 

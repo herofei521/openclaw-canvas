@@ -224,7 +224,11 @@ test.describe('Recovery - Agent reopen', () => {
       })
 
       try {
+        await expect(restartedWindow.locator('.workspace-item')).toHaveCount(1, { timeout: 30_000 })
+        await expect(restartedWindow.locator('.task-node')).toHaveCount(1, { timeout: 30_000 })
+
         const terminalNode = restartedWindow.locator('.terminal-node').first()
+        await expect(restartedWindow.locator('.terminal-node')).toHaveCount(1, { timeout: 30_000 })
         await expect(terminalNode).toBeVisible()
 
         const viewport = terminalNode.locator('.xterm-viewport').first()

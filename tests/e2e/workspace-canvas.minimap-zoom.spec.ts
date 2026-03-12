@@ -355,7 +355,7 @@ test.describe('Workspace Canvas - Minimap & Zoom', () => {
       await minimapDock.hover()
       const minimapToggle = window.locator('[data-testid="workspace-minimap-toggle"]')
       await expect(minimapToggle).toBeVisible()
-      await minimapToggle.click()
+      await minimapToggle.dispatchEvent('click')
       await expect(window.locator('.workspace-canvas__minimap')).toHaveCount(0)
 
       await expect

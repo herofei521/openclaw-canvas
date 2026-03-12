@@ -6,7 +6,7 @@ import {
   type NodePositionChange,
 } from '@xyflow/react'
 import type { TerminalNodeData, WorkspaceSpaceState } from '../../../types'
-import { invalidateCachedTerminalScreenState } from '../../terminalNode/screenStateCache'
+import { cleanupNodeRuntimeArtifacts } from '../../../utils/nodeRuntimeCleanup'
 
 interface UseApplyNodeChangesParams {
   nodesRef: MutableRefObject<Node<TerminalNodeData>[]>
@@ -63,7 +63,7 @@ export function useWorkspaceCanvasApplyNodeChanges({
           }
 
           if (node.data.sessionId.length > 0) {
-            invalidateCachedTerminalScreenState(node.id, node.data.sessionId)
+            cleanupNodeRuntimeArtifacts(node.id, node.data.sessionId)
             void window.opencoveApi.pty
               .kill({ sessionId: node.data.sessionId })
               .catch(() => undefined)

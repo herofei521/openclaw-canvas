@@ -45,7 +45,6 @@ function reportStateWatcherIssue(message: string): void {
 export function createPtyRuntime(): PtyRuntime {
   const ptyManager = new PtyManager()
   const terminalProbeBufferBySession = new Map<string, string>()
-  const isTerminalAttachedBySession = new Map<string, boolean>()
   const pendingPtyDataChunksBySession = new Map<string, string[]>()
   const pendingPtyDataCharsBySession = new Map<string, number>()
   const pendingPtyDataFlushTimerBySession = new Map<string, NodeJS.Timeout>()
@@ -91,6 +90,8 @@ export function createPtyRuntime(): PtyRuntime {
       if (subscribers.size === 0) {
         ptyDataSubscribersBySessionId.delete(sessionId)
       }
+
+      syncSessionProbeBuffer(sessionId)
     }
   }
 
@@ -131,6 +132,15 @@ export function createPtyRuntime(): PtyRuntime {
   const hasPtyDataSubscribers = (sessionId: string): boolean => {
     const subscribers = ptyDataSubscribersBySessionId.get(sessionId)
     return Boolean(subscribers && subscribers.size > 0)
+  }
+
+  const syncSessionProbeBuffer = (sessionId: string): void => {
+    if (hasPtyDataSubscribers(sessionId)) {
+      terminalProbeBufferBySession.delete(sessionId)
+      return
+    }
+
+    terminalProbeBufferBySession.set(sessionId, '')
   }
 
   const sendPtyDataToSubscribers = (eventPayload: TerminalDataEvent): void => {
@@ -235,17 +245,10 @@ export function createPtyRuntime(): PtyRuntime {
   }
 
   const registerSessionProbeState = (sessionId: string): void => {
-    isTerminalAttachedBySession.set(sessionId, false)
     terminalProbeBufferBySession.set(sessionId, '')
   }
 
-  const markSessionAttached = (sessionId: string): void => {
-    isTerminalAttachedBySession.set(sessionId, true)
-    terminalProbeBufferBySession.delete(sessionId)
-  }
-
   const clearSessionProbeState = (sessionId: string): void => {
-    isTerminalAttachedBySession.delete(sessionId)
     terminalProbeBufferBySession.delete(sessionId)
   }
 
@@ -289,7 +292,7 @@ export function createPtyRuntime(): PtyRuntime {
 
   const wirePtySessionEvents = (sessionId: string, pty: IPty): void => {
     pty.onData(data => {
-      if (!isTerminalAttachedBySession.get(sessionId)) {
+      if (!hasPtyDataSubscribers(sessionId)) {
         const probeBuffer = `${terminalProbeBufferBySession.get(sessionId) ?? ''}${data}`
         resolveTerminalProbeReplies(sessionId, probeBuffer)
         terminalProbeBufferBySession.set(sessionId, probeBuffer.slice(-32))
@@ -303,7 +306,7 @@ export function createPtyRuntime(): PtyRuntime {
       clearSessionProbeState(sessionId)
       sessionStateWatcher.disposeSession(sessionId)
       cleanupSessionPtyDataSubscriptions(sessionId)
-      ptyManager.delete(sessionId, { keepSnapshot: true })
+      ptyManager.delete(sessionId)
       const eventPayload: TerminalExitEvent = {
         sessionId,
         exitCode: exit.exitCode,
@@ -320,12 +323,10 @@ export function createPtyRuntime(): PtyRuntime {
       return { sessionId }
     },
     write: (sessionId, data) => {
-      markSessionAttached(sessionId)
       ptyManager.write(sessionId, data)
       sessionStateWatcher.noteInteraction(sessionId)
     },
     resize: (sessionId, cols, rows) => {
-      markSessionAttached(sessionId)
       ptyManager.resize(sessionId, cols, rows)
     },
     kill: sessionId => {
@@ -346,6 +347,7 @@ export function createPtyRuntime(): PtyRuntime {
       subscribers.add(contentsId)
       ptyDataSubscribersBySessionId.set(sessionId, subscribers)
 
+      syncSessionProbeBuffer(sessionId)
       flushPtyDataBroadcast(sessionId)
     },
     detach: (contentsId, sessionId) => {
@@ -360,6 +362,8 @@ export function createPtyRuntime(): PtyRuntime {
       if (subscribers && subscribers.size === 0) {
         ptyDataSubscribersBySessionId.delete(sessionId)
       }
+
+      syncSessionProbeBuffer(sessionId)
     },
     snapshot: sessionId => {
       flushPtyDataBroadcast(sessionId)
@@ -380,7 +384,6 @@ export function createPtyRuntime(): PtyRuntime {
       ptyDataSessionsByWebContentsId.clear()
       ptyDataSubscribedWebContentsIds.clear()
       terminalProbeBufferBySession.clear()
-      isTerminalAttachedBySession.clear()
 
       ptyManager.disposeAll()
     },

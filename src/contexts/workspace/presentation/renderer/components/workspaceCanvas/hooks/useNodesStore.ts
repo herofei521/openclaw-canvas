@@ -2,8 +2,8 @@ import { useCallback, useLayoutEffect, useRef } from 'react'
 import type { Node } from '@xyflow/react'
 import type { Point, Size, TerminalNodeData } from '../../../types'
 import { useScrollbackStore } from '../../../store/useScrollbackStore'
-import { invalidateCachedTerminalScreenState } from '../../terminalNode/screenStateCache'
 import { findNearestFreePosition } from '../../../utils/collision'
+import { cleanupNodeRuntimeArtifacts } from '../../../utils/nodeRuntimeCleanup'
 import { scheduleNodeScrollbackWrite } from '../../../utils/persistence/scrollbackSchedule'
 import { MIN_SIZE } from '../constants'
 import { removeNodeWithRelations } from './useNodesStore.closeNode'
@@ -75,7 +75,7 @@ export function useWorkspaceCanvasNodesStore({
 
       const target = nodesRef.current.find(node => node.id === nodeId)
       if (target && target.data.sessionId.length > 0) {
-        invalidateCachedTerminalScreenState(nodeId, target.data.sessionId)
+        cleanupNodeRuntimeArtifacts(nodeId, target.data.sessionId)
         await window.opencoveApi.pty.kill({ sessionId: target.data.sessionId })
       }
 
@@ -159,6 +159,11 @@ export function useWorkspaceCanvasNodesStore({
 
   const updateNodeScrollback = useCallback(
     (nodeId: string, scrollback: string) => {
+      const node = nodesRef.current.find(candidate => candidate.id === nodeId)
+      if (!node || node.data.kind === 'task') {
+        return
+      }
+
       if (isNodeDraggingRef.current) {
         pendingScrollbackByNodeRef.current.set(nodeId, scrollback)
         return

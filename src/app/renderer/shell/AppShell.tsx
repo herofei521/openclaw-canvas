@@ -25,7 +25,7 @@ import {
   createDefaultWorkspaceViewport,
   sanitizeWorkspaceSpaces,
 } from '@contexts/workspace/presentation/renderer/utils/workspaceSpaces'
-import { invalidateCachedTerminalScreenState } from '@contexts/workspace/presentation/renderer/components/terminalNode/screenStateCache'
+import { cleanupNodeRuntimeArtifacts } from '@contexts/workspace/presentation/renderer/utils/nodeRuntimeCleanup'
 
 export default function App(): React.JSX.Element {
   const {
@@ -319,9 +319,7 @@ export default function App(): React.JSX.Element {
 
     try {
       targetWorkspace.nodes.forEach(node => {
-        if (node.data.sessionId.length > 0) {
-          invalidateCachedTerminalScreenState(node.id, node.data.sessionId)
-        }
+        cleanupNodeRuntimeArtifacts(node.id, node.data.sessionId)
       })
 
       await Promise.allSettled(

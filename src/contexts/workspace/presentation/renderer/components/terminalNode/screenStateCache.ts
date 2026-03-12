@@ -58,6 +58,7 @@ export function setCachedTerminalScreenState(
   }
 
   if (invalidatedSessionIdByNodeId.get(normalizedNodeId) === normalizedSessionId) {
+    invalidatedSessionIdByNodeId.delete(normalizedNodeId)
     return
   }
 
@@ -81,6 +82,35 @@ export function invalidateCachedTerminalScreenState(nodeId: string, sessionId: s
 
   screenStateByNodeId.delete(normalizedNodeId)
   invalidatedSessionIdByNodeId.set(normalizedNodeId, normalizedSessionId)
+}
+
+export function isCachedTerminalScreenStateInvalidated(nodeId: string, sessionId: string): boolean {
+  const normalizedNodeId = normalizeId(nodeId)
+  const normalizedSessionId = normalizeId(sessionId)
+
+  if (normalizedNodeId.length === 0 || normalizedSessionId.length === 0) {
+    return false
+  }
+
+  return invalidatedSessionIdByNodeId.get(normalizedNodeId) === normalizedSessionId
+}
+
+export function clearCachedTerminalScreenStateInvalidation(
+  nodeId: string,
+  sessionId: string,
+): void {
+  const normalizedNodeId = normalizeId(nodeId)
+  const normalizedSessionId = normalizeId(sessionId)
+
+  if (normalizedNodeId.length === 0 || normalizedSessionId.length === 0) {
+    return
+  }
+
+  if (invalidatedSessionIdByNodeId.get(normalizedNodeId) !== normalizedSessionId) {
+    return
+  }
+
+  invalidatedSessionIdByNodeId.delete(normalizedNodeId)
 }
 
 export function clearCachedTerminalScreenStates(): void {

@@ -14,7 +14,7 @@ const pendingByNodeId = new Map<string, PendingScrollbackWrite>()
 
 export function scheduleNodeScrollbackWrite(
   nodeId: string,
-  scrollback: string,
+  scrollback: string | null,
   options: { delayMs?: number; onResult?: (result: PersistWriteResult) => void } = {},
 ): void {
   if (typeof window === 'undefined') {
@@ -52,6 +52,13 @@ export function scheduleNodeScrollbackWrite(
     pending.timer = null
     flushNodeScrollbackWrite(normalizedNodeId)
   }, delayMs)
+}
+
+export function clearNodeScrollbackWrite(
+  nodeId: string,
+  options: { onResult?: (result: PersistWriteResult) => void } = {},
+): void {
+  scheduleNodeScrollbackWrite(nodeId, null, { delayMs: 0, onResult: options.onResult })
 }
 
 export function flushScheduledNodeScrollbackWrites(): void {
@@ -115,7 +122,11 @@ function flushNodeScrollbackWrite(nodeId: string): void {
         return
       }
 
-      if (nextPending.timer === null && nextPending.scrollback === null) {
+      if (
+        nextPending.timer === null &&
+        nextPending.inFlight === false &&
+        nextPending.flushRequested === false
+      ) {
         pendingByNodeId.delete(nodeId)
       }
     })
