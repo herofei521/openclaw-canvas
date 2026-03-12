@@ -74,7 +74,17 @@ function buildReleaseSection(nextVersion, releaseDate, includeHighlights) {
     section.push('### ✨ Highlights', '- **Feature Name**: Description', '')
   }
 
-  section.push('### 🚀 Added', '- TBD', '', '### 💅 Changed', '- TBD', '', '### 🐞 Fixed', '- TBD', '')
+  section.push(
+    '### 🚀 Added',
+    '- TBD',
+    '',
+    '### 💅 Changed',
+    '- TBD',
+    '',
+    '### 🐞 Fixed',
+    '- TBD',
+    '',
+  )
 
   return section.join('\n')
 }
