@@ -110,6 +110,9 @@ interface WorkspaceCanvasViewProps {
   openAgentLauncher: () => void
   createSpaceFromSelectedNodes: () => void
   clearNodeSelection: () => void
+  canConvertSelectedNoteToTask: boolean
+  isConvertSelectedNoteToTaskDisabled: boolean
+  convertSelectedNoteToTask: () => void
 
   taskCreator: TaskCreatorState | null
   taskTitleProviderLabel: string
@@ -220,6 +223,9 @@ export function WorkspaceCanvasView({
   openAgentLauncher,
   createSpaceFromSelectedNodes,
   clearNodeSelection,
+  canConvertSelectedNoteToTask,
+  isConvertSelectedNoteToTaskDisabled,
+  convertSelectedNoteToTask,
   taskCreator,
   taskTitleProviderLabel,
   taskTitleModelLabel,
@@ -377,6 +383,9 @@ export function WorkspaceCanvasView({
         openAgentLauncher={openAgentLauncher}
         createSpaceFromSelectedNodes={createSpaceFromSelectedNodes}
         clearNodeSelection={clearNodeSelection}
+        canConvertSelectedNoteToTask={canConvertSelectedNoteToTask}
+        isConvertSelectedNoteToTaskDisabled={isConvertSelectedNoteToTaskDisabled}
+        convertSelectedNoteToTask={convertSelectedNoteToTask}
       />
 
       <WorkspaceSpaceActionMenu
