@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises'
-import os from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
+import {
+  appendCodexRecord,
+  createCodexSessionFile,
+  runJsonlStdinSubmitDelayedTurnScenario,
+} from './test-agent-session-jsonl.mjs'
 
 function sleep(ms) {
   return new Promise(resolveSleep => {
@@ -10,56 +14,13 @@ function sleep(ms) {
   })
 }
 
-function toDateDirectoryParts(timestampMs) {
-  const date = new Date(timestampMs)
-  const year = String(date.getFullYear())
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return [year, month, day]
-}
-
-async function createCodexSessionFile(cwd) {
-  const startedAtMs = Date.now()
-  const sessionId = `cove-test-session-${startedAtMs}`
-  const [year, month, day] = toDateDirectoryParts(startedAtMs)
-  const sessionFilePath = join(
-    os.homedir(),
-    '.codex',
-    'sessions',
-    year,
-    month,
-    day,
-    `rollout-${sessionId}.jsonl`,
-  )
-  const sessionTimestamp = new Date(startedAtMs).toISOString()
-
-  await fs.mkdir(dirname(sessionFilePath), { recursive: true })
-  await fs.writeFile(
-    sessionFilePath,
-    `${JSON.stringify({
-      timestamp: sessionTimestamp,
-      type: 'session_meta',
-      payload: {
-        id: sessionId,
-        cwd,
-        timestamp: sessionTimestamp,
-      },
-    })}\n`,
-    'utf8',
-  )
-
-  return sessionFilePath
-}
-
-async function appendCodexRecord(sessionFilePath, record, { newline = true } = {}) {
-  const serialized = JSON.stringify(record)
-  await fs.appendFile(sessionFilePath, newline ? `${serialized}\n` : serialized, 'utf8')
-}
-
 function normalizeGeminiProjectDirectoryName(cwd) {
   const name = basename(cwd).trim()
   return name.length > 0 ? name.replace(/[^a-zA-Z0-9._-]/g, '-') : 'workspace'
 }
+
+const BRACKETED_PASTE_START = '\u001b[200~'
+const BRACKETED_PASTE_END = '\u001b[201~'
 
 function createGeminiTimestamp(timestampMs) {
   return new Date(timestampMs).toISOString()
@@ -166,8 +127,8 @@ async function runGeminiUserThenGeminiScenario(cwd) {
   await sleep(20_000)
 }
 
-async function waitForSubmittedLine(timeoutMs = 20_000) {
-  return await new Promise(resolveLine => {
+async function runGeminiStdinSubmitThenReplyScenario(cwd) {
+  const submittedLine = await new Promise(resolveLine => {
     let buffer = ''
     let settled = false
 
@@ -183,25 +144,18 @@ async function waitForSubmittedLine(timeoutMs = 20_000) {
 
     const timer = setTimeout(() => {
       settle(null)
-    }, timeoutMs)
+    }, 20_000)
 
     process.stdin.setEncoding('utf8')
     process.stdin.on('data', chunk => {
       buffer += chunk
-
       const newlineIndex = buffer.search(/[\r\n]/)
-      if (newlineIndex === -1) {
-        return
+      if (newlineIndex !== -1) {
+        settle(buffer.slice(0, newlineIndex))
       }
-
-      settle(buffer.slice(0, newlineIndex))
     })
     process.stdin.resume()
   })
-}
-
-async function runGeminiStdinSubmitThenReplyScenario(cwd) {
-  const submittedLine = await waitForSubmittedLine()
   if (submittedLine === null) {
     await sleep(20_000)
     return
@@ -329,6 +283,68 @@ async function runCodexCommentaryThenFinalScenario(cwd) {
   await sleep(20_000)
 }
 
+function extractBracketedPastePayload(buffer) {
+  const startIndex = buffer.indexOf(BRACKETED_PASTE_START)
+  if (startIndex === -1) {
+    return null
+  }
+
+  const contentStartIndex = startIndex + BRACKETED_PASTE_START.length
+  const endIndex = buffer.indexOf(BRACKETED_PASTE_END, contentStartIndex)
+  if (endIndex === -1) {
+    return null
+  }
+
+  return buffer.slice(contentStartIndex, endIndex)
+}
+
+async function runRawBracketedPasteEchoScenario() {
+  process.stdout.write('\u001b[?2004h')
+
+  await new Promise(resolveScenario => {
+    let settled = false
+    let buffer = ''
+
+    const settle = message => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timeout)
+      process.stdout.write(`${message}\n`)
+      process.stdout.write('\u001b[?2004l')
+      resolveScenario()
+    }
+
+    const timeout = setTimeout(() => {
+      settle('[cove-test-paste] timeout')
+    }, 8_000)
+
+    if (process.stdin.isTTY && typeof process.stdin.setRawMode === 'function') {
+      process.stdin.setRawMode(true)
+    }
+
+    process.stdin.setEncoding('utf8')
+    process.stdin.on('data', chunk => {
+      buffer += chunk
+
+      const bracketedPayload = extractBracketedPastePayload(buffer)
+      if (typeof bracketedPayload === 'string') {
+        settle(`[cove-test-paste] ${bracketedPayload}`)
+        return
+      }
+
+      if (buffer.includes('\u0016')) {
+        settle('[cove-test-paste] ctrl-v')
+      }
+    })
+    process.stdin.resume()
+  })
+
+  await sleep(20_000)
+}
+
 async function main() {
   const [
     provider = 'codex',
@@ -348,6 +364,19 @@ async function main() {
 
   if (provider === 'codex' && scenario === 'codex-commentary-then-final') {
     await runCodexCommentaryThenFinalScenario(cwd)
+    return
+  }
+
+  if (
+    (provider === 'codex' || provider === 'claude-code') &&
+    scenario === 'jsonl-stdin-submit-delayed-turn'
+  ) {
+    await runJsonlStdinSubmitDelayedTurnScenario(provider, cwd)
+    return
+  }
+
+  if (scenario === 'raw-bracketed-paste-echo') {
+    await runRawBracketedPasteEchoScenario()
     return
   }
 

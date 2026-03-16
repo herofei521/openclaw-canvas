@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { clipboard, contextBridge, ipcRenderer } from 'electron'
 import { IPC_CHANNELS } from '../../shared/contracts/ipc'
 import type {
   AttachTerminalInput,
@@ -58,6 +58,9 @@ type UnsubscribeFn = () => void
 const opencoveApi = {
   meta: {
     isTest: process.env.NODE_ENV === 'test',
+  },
+  clipboard: {
+    readText: (): Promise<string> => Promise.resolve(clipboard.readText()),
   },
   persistence: {
     readWorkspaceStateRaw: (): Promise<string | null> =>

@@ -5,12 +5,25 @@ import {
   createTestUserDataDir,
   launchApp,
 } from './workspace-canvas.app'
+import {
+  buildEchoSequenceCommand,
+  buildNodeEvalCommand,
+  buildPaddedNumberSequenceCommand,
+  removePathWithRetry,
+} from './workspace-canvas.testUtils'
 
 export const testWorkspacePath = path.resolve(__dirname, '../../')
 export const storageKey = 'cove:m0:workspace-state'
 export const seededWorkspaceId = 'workspace-seeded'
 export { beginDragMouse, dragLocatorTo, dragMouse } from './workspace-canvas.gestures'
-export { createTestUserDataDir, launchApp }
+export {
+  buildEchoSequenceCommand,
+  buildNodeEvalCommand,
+  buildPaddedNumberSequenceCommand,
+  createTestUserDataDir,
+  launchApp,
+  removePathWithRetry,
+}
 
 export interface SeedAgentData {
   provider: 'claude-code' | 'codex' | 'opencode' | 'gemini'
@@ -39,17 +52,12 @@ export interface SeedTaskData {
   updatedAt?: string | null
 }
 
-export interface SeedNoteData {
-  text: string
-}
+export type SeedNoteData = { text: string }
 
 export interface SeedNode {
   id: string
   title: string
-  position: {
-    x: number
-    y: number
-  }
+  position: { x: number; y: number }
   width: number
   height: number
   kind?: 'terminal' | 'agent' | 'task' | 'note'
