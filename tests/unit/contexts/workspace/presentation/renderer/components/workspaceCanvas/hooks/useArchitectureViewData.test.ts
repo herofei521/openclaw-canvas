@@ -335,11 +335,9 @@ describe('useArchitectureViewData', () => {
 })
 
 describe('useArchitectureViewDataMock', () => {
-  beforeEach(() => {
-  })
+  beforeEach(() => {})
 
-  afterEach(() => {
-  })
+  afterEach(() => {})
 
   it('should return mock data after loading', async () => {
     const { result } = renderHook(() => useArchitectureViewDataMock())
@@ -347,9 +345,12 @@ describe('useArchitectureViewDataMock', () => {
     expect(result.current.isLoading).toBe(true)
 
     // Wait for loading to complete
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    }, { timeout: 10000 })
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+      },
+      { timeout: 10000 },
+    )
 
     expect(result.current.nodes.length).toBeGreaterThan(0)
     expect(result.current.error).toBe(null)
@@ -358,9 +359,12 @@ describe('useArchitectureViewDataMock', () => {
   it('should include 三省六部 agents in mock data', async () => {
     const { result } = renderHook(() => useArchitectureViewDataMock())
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    }, { timeout: 10000 })
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+      },
+      { timeout: 10000 },
+    )
 
     const providers = result.current.nodes.map(n => n.provider)
     expect(providers).toContain('claude-code')
@@ -373,9 +377,12 @@ describe('useArchitectureViewDataMock', () => {
   it('should generate collaborations in mock data', async () => {
     const { result } = renderHook(() => useArchitectureViewDataMock())
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    }, { timeout: 10000 })
+    await waitFor(
+      () => {
+        expect(result.current.isLoading).toBe(false)
+      },
+      { timeout: 10000 },
+    )
 
     expect(result.current.collaborations.length).toBeGreaterThan(0)
   })
