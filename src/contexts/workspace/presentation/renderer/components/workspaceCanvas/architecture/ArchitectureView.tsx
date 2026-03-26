@@ -319,7 +319,7 @@ export function ArchitectureView({
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         onNodeHoverEnd={handleNodeHoverEnd}
-        onNodeDoubleClick={nodeId => {
+        onNodeDoubleClick={_nodeId => {
           // 双击显示/隐藏详情
           updateConfig({ showAgentDetails: !config.showAgentDetails })
         }}

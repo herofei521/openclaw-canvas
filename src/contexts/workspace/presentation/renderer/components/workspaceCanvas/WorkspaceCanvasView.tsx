@@ -13,8 +13,9 @@ import {
 } from '@xyflow/react'
 import { LABEL_COLORS, type LabelColor } from '@shared/types/labelColor'
 import type { TerminalNodeData } from '../../types'
-import { MAX_CANVAS_ZOOM, MIN_CANVAS_ZOOM } from './constants'
 import type { WorkspaceCanvasViewProps } from './WorkspaceCanvasView.types'
+import type { CanvasViewMode } from './architecture/types'
+import { MAX_CANVAS_ZOOM, MIN_CANVAS_ZOOM } from './constants'
 import { useWorkspaceCanvasGlobalDismissals } from './hooks/useGlobalDismissals'
 import { useWorkspaceCanvasSpaceMenuState } from './hooks/useCanvasSpaceMenuState'
 import { WorkspaceCanvasWindows } from './view/WorkspaceCanvasWindows'
@@ -144,7 +145,7 @@ export function WorkspaceCanvasView({
   getSpaceBlockingNodes,
   closeNodesById,
   // Architecture View props
-  viewMode = 'default',
+  viewMode: propViewMode = 'default',
   architectureConfig,
   apiClient,
   useArchitectureMockData = true,
@@ -154,6 +155,8 @@ export function WorkspaceCanvasView({
   const reactFlowStore = useStoreApi()
   const isDragSurfaceSelectionMode = useStore(selectDragSurfaceSelectionMode)
   const [labelColorFilter, setLabelColorFilter] = React.useState<LabelColor | null>(null)
+  // Ensure viewMode is treated as CanvasViewMode, not literal 'default'
+  const viewMode = (propViewMode ?? 'default') as CanvasViewMode
 
   useWorkspaceCanvasGlobalDismissals({
     contextMenu,
@@ -295,6 +298,9 @@ export function WorkspaceCanvasView({
     )
   }
 
+  // At this point, TypeScript knows viewMode is 'default'
+  // We don't need to compare again in the JSX below
+
   // 渲染默认画布视图
   return (
     <div
@@ -357,9 +363,8 @@ export function WorkspaceCanvasView({
             padding: '6px 12px',
             fontSize: '12px',
             fontWeight: '500',
-            color: viewMode === 'default' ? '#ffffff' : 'var(--cove-text-1)',
-            backgroundColor:
-              viewMode === 'default' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            color: '#ffffff',
+            backgroundColor: 'var(--cove-primary)',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -377,9 +382,8 @@ export function WorkspaceCanvasView({
             padding: '6px 12px',
             fontSize: '12px',
             fontWeight: '500',
-            color: viewMode === 'architecture' ? '#ffffff' : 'var(--cove-text-1)',
-            backgroundColor:
-              viewMode === 'architecture' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            color: 'var(--cove-text-1)',
+            backgroundColor: 'var(--cove-surface-2)',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -404,7 +408,7 @@ export function WorkspaceCanvasView({
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
-          onClick={() => onViewModeChange?.(viewMode === 'default' ? 'architecture' : 'default')}
+          onClick={() => onViewModeChange?.('architecture')}
           title="切换视图模式"
         >
           切换视图

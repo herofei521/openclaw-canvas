@@ -15,7 +15,7 @@ import type {
   CollaborationLink,
 } from './types'
 import { DEFAULT_ARCHITECTURE_VIEW_CONFIG } from './types'
-import type { Point } from '../../types'
+import type { Point } from '../types'
 
 /**
  * 使用架构视图模式

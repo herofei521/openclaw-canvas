@@ -69,8 +69,8 @@ export function ArchitectureNode({
   }, [node.id, onMouseEnter])
 
   const handleMouseLeave = useCallback(() => {
-    onMouseLeave?.()
-  }, [onMouseLeave])
+    onMouseLeave?.(node.id)
+  }, [node.id, onMouseLeave])
 
   const handleDoubleClick = useCallback(
     (event: React.MouseEvent) => {

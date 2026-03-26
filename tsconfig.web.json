@@ -6,7 +6,8 @@
     "src/app/preload/**/*",
     "src/shared/**/*",
     "src/contexts/**/domain/**/*",
-    "src/contexts/**/presentation/renderer/**/*"
+    "src/contexts/**/presentation/renderer/**/*",
+    "src/contexts/**/infrastructure/openclaw-api/**/*"
   ],
   "compilerOptions": {
     "composite": true,

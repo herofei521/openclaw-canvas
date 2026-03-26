@@ -13,7 +13,7 @@ import {
   useArchitectureViewDataMock,
 } from './hooks/useArchitectureViewData'
 import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-api/OpenClawApiClient'
-import type { ArchitectureViewConfig } from '../architecture/types'
+import type { ArchitectureViewConfig } from './architecture/types'
 
 /**
  * 架构视图容器组件属性

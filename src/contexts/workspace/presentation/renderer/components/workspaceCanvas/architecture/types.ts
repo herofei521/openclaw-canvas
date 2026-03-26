@@ -11,7 +11,7 @@ import type {
   AgentProviderId,
   AgentRuntimeStatus,
 } from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
-import type { Point } from '../../types'
+import type { Point } from '../types'
 import type { LabelColor } from '@shared/types/labelColor'
 
 /**

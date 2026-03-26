@@ -11,6 +11,9 @@ import type {
   WorkspaceSpaceState,
   WorkspaceViewport,
 } from '../../types'
+
+// Re-export Point for architecture components
+export type { Point }
 import type { AgentSettings } from '@contexts/settings/domain/agentSettings'
 import type { TerminalRuntimeKind } from '@shared/contracts/dto'
 import type { LabelColor } from '@shared/types/labelColor'

@@ -7,8 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ArchitectureAgentNode, CollaborationLink } from './architecture/types'
-import { AGENT_PROVIDERS } from './architecture/types'
+import type { ArchitectureAgentNode, CollaborationLink } from '../architecture/types'
 import type {
   AgentInfo,
   AgentRuntimeStatus,
@@ -39,18 +38,10 @@ export interface ArchitectureViewDataState {
 const LABEL_COLORS: (LabelColor | null)[] = [
   'red',
   'orange',
-  'amber',
+  'yellow',
   'green',
-  'emerald',
-  'teal',
-  'cyan',
   'blue',
-  'indigo',
-  'violet',
   'purple',
-  'fuchsia',
-  'pink',
-  'rose',
   null,
 ]
 
