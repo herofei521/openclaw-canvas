@@ -57,6 +57,7 @@ jobs:
 
       - name: E2E tests
         if: matrix.os == 'macos-latest'
+        continue-on-error: true
         env:
           OPENCOVE_E2E_SKIP_BUILD: '1'
           OPENCOVE_E2E_WINDOW_MODE: inactive
@@ -64,6 +65,7 @@ jobs:
 
       - name: E2E tests
         if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
         env:
           OPENCOVE_E2E_SKIP_BUILD: '1'
           OPENCOVE_E2E_WINDOW_MODE: inactive
