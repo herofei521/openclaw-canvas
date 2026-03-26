@@ -1,14 +1,17 @@
 /**
  * 架构视图容器组件
- * 
+ *
  * 整合架构视图组件和数据 Hook，提供完整的架构视图功能。
- * 
+ *
  * @packageDocumentation
  */
 
 import React from 'react'
 import { ArchitectureView } from './architecture/ArchitectureView'
-import { useArchitectureViewData, useArchitectureViewDataMock } from './hooks/useArchitectureViewData'
+import {
+  useArchitectureViewData,
+  useArchitectureViewDataMock,
+} from './hooks/useArchitectureViewData'
 import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-api/OpenClawApiClient'
 import type { ArchitectureViewConfig } from '../architecture/types'
 
@@ -79,13 +82,7 @@ function LoadingState(): React.JSX.Element {
 /**
  * 错误状态组件
  */
-function ErrorState({
-  error,
-  onRetry,
-}: {
-  error: Error
-  onRetry: () => void
-}): React.JSX.Element {
+function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }): React.JSX.Element {
   return (
     <div
       style={{
@@ -128,7 +125,7 @@ function ErrorState({
 
 /**
  * 架构视图容器组件
- * 
+ *
  * 提供完整的架构视图功能，包括：
  * - 数据获取和状态管理
  * - 加载和错误状态处理

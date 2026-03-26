@@ -1,6 +1,6 @@
 /**
  * 架构视图类型测试
- * 
+ *
  * 测试类型定义和工具函数的正确性。
  */
 
@@ -14,7 +14,10 @@ import {
   AGENT_PROVIDERS,
   DEFAULT_ARCHITECTURE_VIEW_CONFIG,
 } from '@contexts/workspace/presentation/renderer/components/workspaceCanvas/architecture/types'
-import type { AgentRuntimeStatus, CollaborationType } from '@contexts/workspace/presentation/renderer/components/workspaceCanvas/architecture/types'
+import type {
+  AgentRuntimeStatus,
+  CollaborationType,
+} from '@contexts/workspace/presentation/renderer/components/workspaceCanvas/architecture/types'
 
 describe('Architecture Types', () => {
   describe('getAgentStatusColor', () => {

@@ -1,18 +1,14 @@
 /**
  * 协作关系连线组件
- * 
+ *
  * 在架构视图中渲染 Agent 之间的协作关系连线。
- * 
+ *
  * @packageDocumentation
  */
 
 import React, { useMemo } from 'react'
 import type { CollaborationLink, ArchitectureAgentNode } from './types'
-import {
-  getCollaborationColor,
-  getCollaborationLabel,
-  getCollaborationStrokeStyle,
-} from './types'
+import { getCollaborationColor, getCollaborationLabel, getCollaborationStrokeStyle } from './types'
 
 /**
  * 协作关系连线组件属性
@@ -34,7 +30,7 @@ export interface CollaborationEdgeProps {
 
 /**
  * 协作关系连线组件
- * 
+ *
  * 使用 SVG 渲染两个 Agent 节点之间的连线。
  */
 export function CollaborationEdge({
@@ -55,10 +51,10 @@ export function CollaborationEdge({
   const deltaX = endX - startX
   const deltaY = endY - startY
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-  
+
   // 控制点偏移量 (基于距离)
   const controlOffset = Math.min(distance * 0.3, 100)
-  
+
   // 计算控制点 (使曲线更自然)
   const control1X = startX + deltaX * 0.5
   const control1Y = startY - controlOffset * 0.5
@@ -99,7 +95,7 @@ export function CollaborationEdge({
           filter: isHighlighted ? `drop-shadow(0 0 4px ${strokeColor})` : 'none',
         }}
       />
-      
+
       {/* 箭头 */}
       <ArrowMarker
         startX={control2X}
@@ -161,22 +157,22 @@ function ArrowMarker({
   // 计算箭头方向
   const angle = Math.atan2(endY - startY, endX - startX)
   const arrowSize = isHighlighted ? 10 : 8
-  
+
   // 箭头尖端位置 (距离终点一点距离)
   const tipDistance = arrowSize + 2
   const tipX = endX - Math.cos(angle) * tipDistance
   const tipY = endY - Math.sin(angle) * tipDistance
-  
+
   // 箭头三个点
   const arrowPoints = [
     { x: tipX, y: tipY }, // 尖端
-    { 
-      x: tipX - Math.cos(angle - Math.PI / 6) * arrowSize, 
-      y: tipY - Math.sin(angle - Math.PI / 6) * arrowSize 
+    {
+      x: tipX - Math.cos(angle - Math.PI / 6) * arrowSize,
+      y: tipY - Math.sin(angle - Math.PI / 6) * arrowSize,
     }, // 左下
-    { 
-      x: tipX - Math.cos(angle + Math.PI / 6) * arrowSize, 
-      y: tipY - Math.sin(angle + Math.PI / 6) * arrowSize 
+    {
+      x: tipX - Math.cos(angle + Math.PI / 6) * arrowSize,
+      y: tipY - Math.sin(angle + Math.PI / 6) * arrowSize,
     }, // 右下
   ]
 
@@ -197,7 +193,7 @@ function ArrowMarker({
 
 /**
  * 协作关系连线集合组件
- * 
+ *
  * 渲染所有协作关系连线。
  */
 export interface CollaborationEdgesProps {
@@ -227,10 +223,7 @@ export function CollaborationEdges({
   onLinkHoverEnd,
 }: CollaborationEdgesProps): React.JSX.Element {
   // 创建节点查找映射
-  const nodeMap = useMemo(
-    () => new Map(nodes.map(node => [node.id, node])),
-    [nodes]
-  )
+  const nodeMap = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 
   return (
     <svg

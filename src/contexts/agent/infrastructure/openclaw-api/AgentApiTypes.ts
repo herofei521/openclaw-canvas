@@ -1,15 +1,15 @@
 /**
  * OpenClaw Agent API 类型定义
- * 
+ *
  * 本文件定义 OpenClaw Agent API 客户端使用的所有类型。
  * 包括认证、Agent 管理、会话管理等核心类型。
- * 
+ *
  * @packageDocumentation
  */
 
 /**
  * OAuth 2.0 认证配置
- * 
+ *
  * 用于配置 OAuth 2.0 认证流程的参数。
  */
 export interface OAuth2Config {
@@ -29,7 +29,7 @@ export interface OAuth2Config {
 
 /**
  * OAuth 2.0 令牌
- * 
+ *
  * 表示访问令牌和刷新令牌的信息。
  */
 export interface OAuth2Token {
@@ -47,33 +47,28 @@ export interface OAuth2Token {
 
 /**
  * Agent 提供者 ID
- * 
+ *
  * 标识不同的 Agent 提供者。
  */
-export type AgentProviderId = 
-  | 'claude-code' 
-  | 'codex' 
-  | 'opencode' 
-  | 'gemini'
-  | 'openclaw'
+export type AgentProviderId = 'claude-code' | 'codex' | 'opencode' | 'gemini' | 'openclaw'
 
 /**
  * Agent 运行时状态
- * 
+ *
  * 表示 Agent 的当前运行状态。
  */
 export type AgentRuntimeStatus =
-  | 'running'      // 运行中
-  | 'standby'      // 待机
-  | 'exited'       // 已退出
-  | 'failed'       // 失败
-  | 'stopped'      // 已停止
-  | 'restoring'    // 恢复中
+  | 'running' // 运行中
+  | 'standby' // 待机
+  | 'exited' // 已退出
+  | 'failed' // 失败
+  | 'stopped' // 已停止
+  | 'restoring' // 恢复中
   | 'initializing' // 初始化中
 
 /**
  * Agent 基本信息
- * 
+ *
  * 表示一个 Agent 的基本元数据。
  */
 export interface AgentInfo {
@@ -97,7 +92,7 @@ export interface AgentInfo {
 
 /**
  * Agent 模型信息
- * 
+ *
  * 表示 Agent 支持的模型。
  */
 export interface AgentModelInfo {
@@ -117,7 +112,7 @@ export interface AgentModelInfo {
 
 /**
  * Agent 调用请求
- * 
+ *
  * 调用 Agent 执行任务的请求参数。
  */
 export interface AgentInvokeRequest {
@@ -143,7 +138,7 @@ export interface AgentInvokeRequest {
 
 /**
  * Agent 调用响应
- * 
+ *
  * Agent 调用执行后的响应。
  */
 export interface AgentInvokeResponse {
@@ -167,7 +162,7 @@ export interface AgentInvokeResponse {
 
 /**
  * 会话配置
- * 
+ *
  * 创建新会话的配置参数。
  */
 export interface SessionConfig {
@@ -187,7 +182,7 @@ export interface SessionConfig {
 
 /**
  * 会话信息
- * 
+ *
  * 会话的基本信息。
  */
 export interface SessionInfo {
@@ -211,20 +206,20 @@ export interface SessionInfo {
 
 /**
  * 会话状态
- * 
+ *
  * 表示会话的当前状态。
  */
 export type SessionStatus =
-  | 'active'      // 活跃
-  | 'idle'        // 空闲
-  | 'busy'        // 忙碌
-  | 'completed'   // 已完成
-  | 'error'       // 错误
-  | 'terminated'  // 已终止
+  | 'active' // 活跃
+  | 'idle' // 空闲
+  | 'busy' // 忙碌
+  | 'completed' // 已完成
+  | 'error' // 错误
+  | 'terminated' // 已终止
 
 /**
  * 会话状态详情
- * 
+ *
  * 会话的详细状态信息。
  */
 export interface SessionStatusDetail {
@@ -251,7 +246,7 @@ export interface SessionStatusDetail {
 
 /**
  * Agent API 客户端配置
- * 
+ *
  * 配置 Agent API 客户端的参数。
  */
 export interface AgentApiClientConfig {
@@ -271,7 +266,7 @@ export interface AgentApiClientConfig {
 
 /**
  * API 错误描述
- * 
+ *
  * 表示 API 调用中的错误。
  */
 export interface ApiErrorDescriptor {
@@ -289,7 +284,7 @@ export interface ApiErrorDescriptor {
 
 /**
  * API 响应包装器
- * 
+ *
  * 统一的 API 响应格式。
  */
 export interface ApiResponse<T> {
@@ -307,7 +302,7 @@ export interface ApiResponse<T> {
 
 /**
  * 分页参数
- * 
+ *
  * 用于分页查询的参数。
  */
 export interface PaginationParams {
@@ -319,7 +314,7 @@ export interface PaginationParams {
 
 /**
  * 分页结果
- * 
+ *
  * 分页查询的响应结果。
  */
 export interface PaginatedResult<T> {

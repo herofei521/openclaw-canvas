@@ -1,8 +1,8 @@
 /**
  * 架构视图模式 Hook
- * 
+ *
  * 提供视图模式切换和状态管理的逻辑。
- * 
+ *
  * @packageDocumentation
  */
 
@@ -19,15 +19,13 @@ import type { Point } from '../../types'
 
 /**
  * 使用架构视图模式
- * 
+ *
  * 管理画布视图模式的切换和架构视图状态。
- * 
+ *
  * @param initialMode - 初始视图模式
  * @returns 视图模式状态和操作函数
  */
-export function useArchitectureViewMode(
-  initialMode: CanvasViewMode = 'default'
-): {
+export function useArchitectureViewMode(initialMode: CanvasViewMode = 'default'): {
   /** 当前视图模式 */
   viewMode: CanvasViewMode
   /** 架构视图状态 */
@@ -66,7 +64,7 @@ export function useArchitectureViewMode(
 
   // 示例 Agent 节点数据 (实际应从 API 获取)
   const agentNodes: ArchitectureAgentNode[] = useMemo(() => [], [])
-  
+
   // 示例协作关系数据 (实际应从 API 获取)
   const allCollaborations: CollaborationLink[] = useMemo(() => [], [])
 
@@ -90,7 +88,7 @@ export function useArchitectureViewMode(
       hoveredAgentId,
       zoomLevel,
       centerPoint,
-    ]
+    ],
   )
 
   /**

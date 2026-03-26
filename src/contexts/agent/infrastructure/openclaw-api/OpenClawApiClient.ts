@@ -1,9 +1,9 @@
 /**
  * OpenClaw Agent API 客户端
- * 
+ *
  * 提供与 OpenClaw Agent API 交互的完整客户端实现。
  * 支持 OAuth 2.0 认证、Agent 调用、会话管理等功能。
- * 
+ *
  * @packageDocumentation
  */
 
@@ -53,7 +53,7 @@ const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 
 /**
  * OpenClaw Agent API 客户端类
- * 
+ *
  * 提供与 OpenClaw Agent API 交互的完整接口：
  * - OAuth 2.0 认证管理
  * - Agent 列表和状态查询
@@ -63,19 +63,19 @@ const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
 export class OpenClawApiClient {
   /** API 配置 */
   private readonly config: Required<AgentApiClientConfig>
-  
+
   /** OAuth 2.0 认证提供者 */
   private readonly authProvider: OAuth2AuthProvider
 
   /**
    * 创建 API 客户端
-   * 
+   *
    * @param config - API 客户端配置
    * @throws 如果配置无效
    */
   constructor(config: AgentApiClientConfig) {
     this.validateConfig(config)
-    
+
     this.config = {
       baseUrl: config.baseUrl.replace(/\/$/, ''), // Remove trailing slash
       oauth: config.oauth,
@@ -93,10 +93,7 @@ export class OpenClawApiClient {
    */
   private validateConfig(config: AgentApiClientConfig): void {
     if (!config.baseUrl || config.baseUrl.trim() === '') {
-      throw new AgentApiError(
-        AgentApiErrorCode.CLIENT_INVALID_CONFIG,
-        'baseUrl is required'
-      )
+      throw new AgentApiError(AgentApiErrorCode.CLIENT_INVALID_CONFIG, 'baseUrl is required')
     }
   }
 
@@ -111,9 +108,9 @@ export class OpenClawApiClient {
 
   /**
    * 认证
-   * 
+   *
    * 获取访问令牌。调用其他 API 前会自动调用此方法。
-   * 
+   *
    * @throws 如果认证失败
    */
   async authenticate(): Promise<void> {
@@ -124,7 +121,7 @@ export class OpenClawApiClient {
 
   /**
    * 登出
-   * 
+   *
    * 撤销访问令牌。
    */
   async logout(): Promise<void> {
@@ -135,14 +132,14 @@ export class OpenClawApiClient {
 
   /**
    * 获取 Agent 列表
-   * 
+   *
    * @param params - 查询参数
    * @returns 分页的 Agent 列表
    * @throws 如果请求失败
    */
   async listAgents(params: ListAgentsParams): Promise<PaginatedResult<AgentInfo>> {
     this.log('Listing agents with params:', params)
-    
+
     const queryParams = new URLSearchParams({
       page: params.page.toString(),
       pageSize: params.pageSize.toString(),
@@ -160,13 +157,13 @@ export class OpenClawApiClient {
 
     const response = await this.request<ApiResponse<PaginatedResult<AgentInfo>>>(
       `/api/agents?${queryParams.toString()}`,
-      { method: 'GET' }
+      { method: 'GET' },
     )
 
     if (!response.success || !response.data) {
       throw createApiError(
         AgentApiErrorCode.API_INTERNAL_ERROR,
-        response.error?.message || 'Failed to list agents'
+        response.error?.message || 'Failed to list agents',
       )
     }
 
@@ -175,7 +172,7 @@ export class OpenClawApiClient {
 
   /**
    * 调用 Agent
-   * 
+   *
    * @param request - 调用请求
    * @returns 调用响应
    * @throws 如果调用失败
@@ -196,13 +193,13 @@ export class OpenClawApiClient {
           cols: request.cols,
           rows: request.rows,
         }),
-      }
+      },
     )
 
     if (!response.success || !response.data) {
       throw createAgentError(
         AgentApiErrorCode.AGENT_INVOKE_FAILED,
-        response.error?.message || 'Failed to invoke agent'
+        response.error?.message || 'Failed to invoke agent',
       )
     }
 
@@ -211,7 +208,7 @@ export class OpenClawApiClient {
 
   /**
    * 创建会话
-   * 
+   *
    * @param config - 会话配置
    * @returns 会话信息
    * @throws 如果创建失败
@@ -219,25 +216,22 @@ export class OpenClawApiClient {
   async createSession(config: SessionConfig): Promise<SessionInfo> {
     this.log('Creating session for agent:', config.agentId)
 
-    const response = await this.request<ApiResponse<SessionInfo>>(
-      '/api/sessions',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          agentId: config.agentId,
-          name: config.name,
-          cwd: config.cwd,
-          model: config.model,
-          initialPrompt: config.initialPrompt,
-          metadata: config.metadata,
-        }),
-      }
-    )
+    const response = await this.request<ApiResponse<SessionInfo>>('/api/sessions', {
+      method: 'POST',
+      body: JSON.stringify({
+        agentId: config.agentId,
+        name: config.name,
+        cwd: config.cwd,
+        model: config.model,
+        initialPrompt: config.initialPrompt,
+        metadata: config.metadata,
+      }),
+    })
 
     if (!response.success || !response.data) {
       throw createSessionError(
         AgentApiErrorCode.SESSION_CREATE_FAILED,
-        response.error?.message || 'Failed to create session'
+        response.error?.message || 'Failed to create session',
       )
     }
 
@@ -246,7 +240,7 @@ export class OpenClawApiClient {
 
   /**
    * 获取会话状态
-   * 
+   *
    * @param sessionId - 会话 ID
    * @returns 会话状态详情
    * @throws 如果会话不存在
@@ -256,19 +250,19 @@ export class OpenClawApiClient {
 
     const response = await this.request<ApiResponse<SessionStatusDetail>>(
       `/api/sessions/${encodeURIComponent(sessionId)}/status`,
-      { method: 'GET' }
+      { method: 'GET' },
     )
 
     if (!response.success || !response.data) {
       if (response.error?.code === 'api.not_found') {
         throw createSessionError(
           AgentApiErrorCode.SESSION_NOT_FOUND,
-          `Session ${sessionId} not found`
+          `Session ${sessionId} not found`,
         )
       }
       throw createSessionError(
         AgentApiErrorCode.SESSION_TERMINATED,
-        response.error?.message || 'Failed to get session status'
+        response.error?.message || 'Failed to get session status',
       )
     }
 
@@ -277,7 +271,7 @@ export class OpenClawApiClient {
 
   /**
    * 终止会话
-   * 
+   *
    * @param sessionId - 会话 ID
    * @throws 如果终止失败
    */
@@ -286,20 +280,20 @@ export class OpenClawApiClient {
 
     await this.request<ApiResponse<void>>(
       `/api/sessions/${encodeURIComponent(sessionId)}/terminate`,
-      { method: 'POST' }
+      { method: 'POST' },
     )
   }
 
   /**
    * 获取会话列表
-   * 
+   *
    * @param params - 查询参数
    * @returns 分页的会话列表
    * @throws 如果请求失败
    */
   async listSessions(params: ListSessionsParams): Promise<PaginatedResult<SessionInfo>> {
     this.log('Listing sessions with params:', params)
-    
+
     const queryParams = new URLSearchParams({
       page: params.page.toString(),
       pageSize: params.pageSize.toString(),
@@ -317,13 +311,13 @@ export class OpenClawApiClient {
 
     const response = await this.request<ApiResponse<PaginatedResult<SessionInfo>>>(
       `/api/sessions?${queryParams.toString()}`,
-      { method: 'GET' }
+      { method: 'GET' },
     )
 
     if (!response.success || !response.data) {
       throw createApiError(
         AgentApiErrorCode.API_INTERNAL_ERROR,
-        response.error?.message || 'Failed to list sessions'
+        response.error?.message || 'Failed to list sessions',
       )
     }
 
@@ -332,22 +326,18 @@ export class OpenClawApiClient {
 
   /**
    * 发送 HTTP 请求
-   * 
+   *
    * @param path - API 路径
    * @param options - fetch 选项
    * @param retryCount - 当前重试次数
    * @returns 响应数据
    * @throws 如果请求失败
    */
-  private async request<T>(
-    path: string,
-    options: RequestInit,
-    retryCount: number = 0
-  ): Promise<T> {
+  private async request<T>(path: string, options: RequestInit, retryCount: number = 0): Promise<T> {
     const url = `${this.config.baseUrl}${path}`
-    
+
     const token = await this.authProvider.getAccessToken()
-    
+
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs)
 
@@ -356,8 +346,8 @@ export class OpenClawApiClient {
         ...options,
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
           ...options.headers,
         },
         signal: controller.signal,
@@ -367,7 +357,9 @@ export class OpenClawApiClient {
 
       // Handle retryable errors
       if (RETRYABLE_STATUS_CODES.includes(response.status) && retryCount < this.config.retryCount) {
-        this.log(`Request failed with ${response.status}, retrying (${retryCount + 1}/${this.config.retryCount})`)
+        this.log(
+          `Request failed with ${response.status}, retrying (${retryCount + 1}/${this.config.retryCount})`,
+        )
         await this.delay(this.config.retryDelayMs * (retryCount + 1))
         return this.request<T>(path, options, retryCount + 1)
       }
@@ -389,7 +381,7 @@ export class OpenClawApiClient {
       if (error instanceof Error && error.name === 'AbortError') {
         throw createNetworkError(
           AgentApiErrorCode.NETWORK_TIMEOUT,
-          `Request to ${url} timed out after ${this.config.timeoutMs}ms`
+          `Request to ${url} timed out after ${this.config.timeoutMs}ms`,
         )
       }
 
@@ -407,7 +399,7 @@ export class OpenClawApiClient {
       throw createNetworkError(
         AgentApiErrorCode.NETWORK_CONNECTION_ERROR,
         `Failed to connect to ${url}`,
-        { cause: error }
+        { cause: error },
       )
     }
   }
@@ -416,11 +408,12 @@ export class OpenClawApiClient {
    * 从响应创建错误
    */
   private createErrorFromResponse(status: number, data: Record<string, unknown>): AgentApiError {
-    const errorMessage = typeof data.message === 'string' 
-      ? data.message 
-      : typeof data.error === 'string' 
-        ? data.error 
-        : 'Unknown error'
+    const errorMessage =
+      typeof data.message === 'string'
+        ? data.message
+        : typeof data.error === 'string'
+          ? data.error
+          : 'Unknown error'
 
     switch (status) {
       case 400:
@@ -433,11 +426,9 @@ export class OpenClawApiClient {
       case 429:
         return createApiError(AgentApiErrorCode.API_RATE_LIMITED, errorMessage)
       default:
-        return createApiError(
-          AgentApiErrorCode.API_INTERNAL_ERROR,
-          errorMessage,
-          { httpStatus: status }
-        )
+        return createApiError(AgentApiErrorCode.API_INTERNAL_ERROR, errorMessage, {
+          httpStatus: status,
+        })
     }
   }
 

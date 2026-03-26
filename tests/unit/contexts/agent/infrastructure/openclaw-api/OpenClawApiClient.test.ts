@@ -1,6 +1,6 @@
 /**
  * OpenClaw Agent API 客户端单元测试
- * 
+ *
  * 测试 Agent API 客户端的核心功能。
  */
 
@@ -101,23 +101,31 @@ describe('OpenClawApiClient', () => {
         expect.objectContaining({
           method: 'GET',
           headers: expect.objectContaining({
-            'Authorization': 'Bearer mock-access-token',
+            Authorization: 'Bearer mock-access-token',
           }),
-        })
+        }),
       )
     })
 
     it('should filter by provider', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false }),
+        json: async () => ({
+          items: [],
+          total: 0,
+          page: 1,
+          pageSize: 10,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        }),
       })
 
       await client.listAgents({ page: 1, pageSize: 10, provider: 'codex' })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('provider=codex'),
-        expect.any(Object)
+        expect.any(Object),
       )
     })
 
@@ -162,7 +170,7 @@ describe('OpenClawApiClient', () => {
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('Test prompt'),
-        })
+        }),
       )
     })
 
@@ -178,7 +186,7 @@ describe('OpenClawApiClient', () => {
           agentId: 'non-existent',
           prompt: 'Test',
           cwd: '/test',
-        })
+        }),
       ).rejects.toThrow()
     })
 
@@ -199,7 +207,7 @@ describe('OpenClawApiClient', () => {
           agentId: 'agent-1',
           prompt: 'Test',
           cwd: '/test',
-        })
+        }),
       ).rejects.toThrow()
     })
   })
@@ -294,11 +302,19 @@ describe('OpenClawApiClient', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0, hasNextPage: false, hasPreviousPage: false }),
+          json: async () => ({
+            items: [],
+            total: 0,
+            page: 1,
+            pageSize: 10,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          }),
         })
 
       const result = await client.listAgents({ page: 1, pageSize: 10 })
-      
+
       expect(result).toBeDefined()
       expect(mockFetch).toHaveBeenCalledTimes(3)
     })

@@ -1,8 +1,8 @@
 /**
  * 架构节点组件
- * 
+ *
  * 在架构视图中显示 Agent 节点。
- * 
+ *
  * @packageDocumentation
  */
 
@@ -38,7 +38,7 @@ export interface ArchitectureNodeProps {
 
 /**
  * 架构节点组件
- * 
+ *
  * 渲染单个 Agent 节点的可视化表示。
  */
 export function ArchitectureNode({
@@ -53,7 +53,7 @@ export function ArchitectureNode({
   const providerInfo = AGENT_PROVIDERS[node.provider]
   const statusColor = getAgentStatusColor(node.status)
   const statusLabel = getAgentStatusLabel(node.status)
-  
+
   const isActive = node.status === 'running' || node.status === 'standby'
   const shouldHighlight = highlightActive && isActive
 
@@ -61,7 +61,7 @@ export function ArchitectureNode({
     (event: React.MouseEvent) => {
       onClick?.(node.id, event)
     },
-    [node.id, onClick]
+    [node.id, onClick],
   )
 
   const handleMouseEnter = useCallback(() => {
@@ -76,7 +76,7 @@ export function ArchitectureNode({
     (event: React.MouseEvent) => {
       onDoubleClick?.(node.id, event)
     },
-    [node.id, onDoubleClick]
+    [node.id, onDoubleClick],
   )
 
   const containerStyle: React.CSSProperties = useMemo(
@@ -87,17 +87,17 @@ export function ArchitectureNode({
       width: node.width,
       height: node.height,
       backgroundColor: node.isSelected ? '#3b82f6' : shouldHighlight ? '#1e3a5f' : '#1f2937',
-      border: node.isSelected 
-        ? '2px solid #60a5fa' 
-        : node.isHighlighted 
+      border: node.isSelected
+        ? '2px solid #60a5fa'
+        : node.isHighlighted
           ? '2px solid #fbbf24'
           : '1px solid #374151',
       borderRadius: '8px',
       padding: '12px',
       cursor: 'pointer',
       transition: 'all 0.2s ease',
-      boxShadow: node.isSelected 
-        ? '0 0 20px rgba(59, 130, 246, 0.5)' 
+      boxShadow: node.isSelected
+        ? '0 0 20px rgba(59, 130, 246, 0.5)'
         : shouldHighlight
           ? '0 0 15px rgba(34, 197, 94, 0.3)'
           : '0 2px 8px rgba(0, 0, 0, 0.3)',
@@ -115,7 +115,7 @@ export function ArchitectureNode({
       node.isSelected,
       node.isHighlighted,
       shouldHighlight,
-    ]
+    ],
   )
 
   const headerStyle: React.CSSProperties = useMemo(
@@ -125,7 +125,7 @@ export function ArchitectureNode({
       gap: '8px',
       marginBottom: '4px',
     }),
-    []
+    [],
   )
 
   const statusIndicatorStyle: React.CSSProperties = useMemo(
@@ -137,7 +137,7 @@ export function ArchitectureNode({
       boxShadow: `0 0 8px ${statusColor}`,
       flexShrink: 0,
     }),
-    [statusColor]
+    [statusColor],
   )
 
   const nameStyle: React.CSSProperties = useMemo(
@@ -150,7 +150,7 @@ export function ArchitectureNode({
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
     }),
-    []
+    [],
   )
 
   const providerBadgeStyle: React.CSSProperties = useMemo(
@@ -162,7 +162,7 @@ export function ArchitectureNode({
       color: '#9ca3af',
       flexShrink: 0,
     }),
-    []
+    [],
   )
 
   const descriptionStyle: React.CSSProperties = useMemo(
@@ -176,7 +176,7 @@ export function ArchitectureNode({
       WebkitLineClamp: showDetails ? 3 : 1,
       WebkitBoxOrient: 'vertical',
     }),
-    [showDetails]
+    [showDetails],
   )
 
   const statusBadgeStyle: React.CSSProperties = useMemo(
@@ -189,7 +189,7 @@ export function ArchitectureNode({
       border: `1px solid ${statusColor}40`,
       alignSelf: 'flex-start',
     }),
-    [statusColor]
+    [statusColor],
   )
 
   const collaborationsContainerStyle: React.CSSProperties = useMemo(
@@ -199,7 +199,7 @@ export function ArchitectureNode({
       gap: '4px',
       marginTop: '4px',
     }),
-    []
+    [],
   )
 
   const collaborationBadgeStyle = (type: CollaborationType): React.CSSProperties => ({
@@ -239,16 +239,14 @@ export function ArchitectureNode({
       </div>
 
       {/* Status Badge */}
-      <div style={statusBadgeStyle}>
-        {statusLabel}
-      </div>
+      <div style={statusBadgeStyle}>{statusLabel}</div>
 
       {/* Collaborations (if showing details) */}
       {showDetails && node.collaborations.length > 0 && (
         <div style={collaborationsContainerStyle}>
           {node.collaborations.slice(0, 5).map((collab, index) => (
-            <span 
-              key={`${collab.toAgentId}-${index}`} 
+            <span
+              key={`${collab.toAgentId}-${index}`}
               style={collaborationBadgeStyle(collab.type)}
               title={`${getCollaborationLabel(collab.type)}: ${collab.toAgentId}`}
             >
@@ -275,7 +273,7 @@ export function ArchitectureNode({
 
 /**
  * 架构节点列表组件
- * 
+ *
  * 渲染所有 Agent 节点。
  */
 export interface ArchitectureNodeListProps {

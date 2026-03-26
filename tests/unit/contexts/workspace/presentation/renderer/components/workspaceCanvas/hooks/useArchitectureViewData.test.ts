@@ -1,6 +1,6 @@
 /**
  * useArchitectureViewData Hook 测试
- * 
+ *
  * 测试架构视图数据 Hook 的功能：
  * - 数据获取和状态管理
  * - 数据转换 (AgentInfo → ArchitectureAgentNode)
@@ -70,7 +70,9 @@ describe('useArchitectureViewData', () => {
       ]
 
       const mockApiClient = {
-        listAgents: vi.fn().mockResolvedValue({ items: mockAgents, total: 1, page: 1, pageSize: 100 }),
+        listAgents: vi
+          .fn()
+          .mockResolvedValue({ items: mockAgents, total: 1, page: 1, pageSize: 100 }),
       } as unknown as OpenClawApiClient
 
       const { result } = renderHook(() => useArchitectureViewData(mockApiClient, false))
@@ -109,14 +111,21 @@ describe('useArchitectureViewData', () => {
         provider: 'openclaw',
         status: 'running',
         models: [
-          { id: 'minimax-m2.7', displayName: 'MiniMax M2.7', description: 'MiniMax', isDefault: true },
+          {
+            id: 'minimax-m2.7',
+            displayName: 'MiniMax M2.7',
+            description: 'MiniMax',
+            isDefault: true,
+          },
         ],
         createdAt: '2026-03-22T00:00:00Z',
         updatedAt: '2026-03-26T15:30:00Z',
       }
 
       const mockApiClient = {
-        listAgents: vi.fn().mockResolvedValue({ items: [mockAgent], total: 1, page: 1, pageSize: 100 }),
+        listAgents: vi
+          .fn()
+          .mockResolvedValue({ items: [mockAgent], total: 1, page: 1, pageSize: 100 }),
       } as unknown as OpenClawApiClient
 
       const { result } = renderHook(() => useArchitectureViewData(mockApiClient, false))
@@ -149,7 +158,9 @@ describe('useArchitectureViewData', () => {
       }
 
       const mockApiClient = {
-        listAgents: vi.fn().mockResolvedValue({ items: [mockAgent], total: 1, page: 1, pageSize: 100 }),
+        listAgents: vi
+          .fn()
+          .mockResolvedValue({ items: [mockAgent], total: 1, page: 1, pageSize: 100 }),
       } as unknown as OpenClawApiClient
 
       const { result: result1 } = renderHook(() => useArchitectureViewData(mockApiClient, false))
@@ -204,7 +215,9 @@ describe('useArchitectureViewData', () => {
       ]
 
       const mockApiClient = {
-        listAgents: vi.fn().mockResolvedValue({ items: mockAgents, total: 3, page: 1, pageSize: 100 }),
+        listAgents: vi
+          .fn()
+          .mockResolvedValue({ items: mockAgents, total: 3, page: 1, pageSize: 100 }),
       } as unknown as OpenClawApiClient
 
       const { result } = renderHook(() => useArchitectureViewData(mockApiClient, false))
@@ -214,15 +227,15 @@ describe('useArchitectureViewData', () => {
       })
 
       expect(result.current.collaborations.length).toBeGreaterThan(0)
-      
+
       const zhongshuToMenxia = result.current.collaborations.find(
-        c => c.fromAgentId === 'zhongshu-1' && c.toAgentId === 'menxia-1'
+        c => c.fromAgentId === 'zhongshu-1' && c.toAgentId === 'menxia-1',
       )
       expect(zhongshuToMenxia).toBeDefined()
       expect(zhongshuToMenxia?.type).toBe('supervisor')
 
       const menxiaToBingbu = result.current.collaborations.find(
-        c => c.fromAgentId === 'menxia-1' && c.toAgentId === 'bingbu-1'
+        c => c.fromAgentId === 'menxia-1' && c.toAgentId === 'bingbu-1',
       )
       expect(menxiaToBingbu).toBeDefined()
       expect(menxiaToBingbu?.type).toBe('downstream')
@@ -253,7 +266,9 @@ describe('useArchitectureViewData', () => {
       ]
 
       const mockApiClient = {
-        listAgents: vi.fn().mockResolvedValue({ items: mockAgents, total: 2, page: 1, pageSize: 100 }),
+        listAgents: vi
+          .fn()
+          .mockResolvedValue({ items: mockAgents, total: 2, page: 1, pageSize: 100 }),
       } as unknown as OpenClawApiClient
 
       const { result } = renderHook(() => useArchitectureViewData(mockApiClient, false))
@@ -262,9 +277,7 @@ describe('useArchitectureViewData', () => {
         expect(result.current.isLoading).toBe(false)
       })
 
-      const peerCollaboration = result.current.collaborations.find(
-        c => c.type === 'peer'
-      )
+      const peerCollaboration = result.current.collaborations.find(c => c.type === 'peer')
       expect(peerCollaboration).toBeDefined()
     })
   })

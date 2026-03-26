@@ -1,8 +1,8 @@
 /**
  * 架构视图主组件
- * 
+ *
  * 整合架构视图的所有子组件，提供完整的架构可视化界面。
- * 
+ *
  * @packageDocumentation
  */
 
@@ -32,7 +32,7 @@ export interface ArchitectureViewProps {
 
 /**
  * 架构视图主组件
- * 
+ *
  * 提供完整的架构可视化界面，包括：
  * - Agent 节点显示
  * - 协作关系连线
@@ -68,7 +68,7 @@ export function ArchitectureView({
       ...architectureState.config,
       ...initialConfig,
     }),
-    [architectureState.config, initialConfig]
+    [architectureState.config, initialConfig],
   )
 
   // 通知父组件视图模式变化
@@ -94,7 +94,7 @@ export function ArchitectureView({
       const multi = event.shiftKey || event.ctrlKey || event.metaKey
       selectAgent(nodeId, multi)
     },
-    [selectAgent]
+    [selectAgent],
   )
 
   /**
@@ -104,7 +104,7 @@ export function ArchitectureView({
     (nodeId: string) => {
       setHoveredAgent(nodeId)
     },
-    [setHoveredAgent]
+    [setHoveredAgent],
   )
 
   /**
@@ -137,7 +137,7 @@ export function ArchitectureView({
         clearSelection()
       }
     },
-    [clearSelection]
+    [clearSelection],
   )
 
   /**
@@ -145,15 +145,11 @@ export function ArchitectureView({
    */
   const highlightedLinkIds = useMemo(() => {
     if (!hoveredLinkId) return []
-    return architectureState.selectedAgentIds
-      .flatMap(selectedId =>
-        collaborations
-          .filter(
-            link =>
-              link.fromAgentId === selectedId || link.toAgentId === selectedId
-          )
-          .map((link, index) => `${link.fromAgentId}-${link.toAgentId}-${index}`)
-      )
+    return architectureState.selectedAgentIds.flatMap(selectedId =>
+      collaborations
+        .filter(link => link.fromAgentId === selectedId || link.toAgentId === selectedId)
+        .map((link, index) => `${link.fromAgentId}-${link.toAgentId}-${index}`),
+    )
   }, [architectureState.selectedAgentIds, collaborations, hoveredLinkId])
 
   // 容器样式
@@ -274,11 +270,7 @@ export function ArchitectureView({
         >
           {config.showAgentRelations ? '隐藏连线' : '显示连线'}
         </button>
-        <button
-          style={buttonStyle}
-          onClick={resetConfig}
-          title="重置配置"
-        >
+        <button style={buttonStyle} onClick={resetConfig} title="重置配置">
           重置
         </button>
       </div>
@@ -327,7 +319,7 @@ export function ArchitectureView({
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         onNodeHoverEnd={handleNodeHoverEnd}
-        onNodeDoubleClick={(nodeId) => {
+        onNodeDoubleClick={nodeId => {
           // 双击显示/隐藏详情
           updateConfig({ showAgentDetails: !config.showAgentDetails })
         }}

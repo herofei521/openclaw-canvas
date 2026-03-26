@@ -1,6 +1,6 @@
 /**
  * 架构视图模式模块导出
- * 
+ *
  * @packageDocumentation
  */
 

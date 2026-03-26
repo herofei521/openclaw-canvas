@@ -358,7 +358,8 @@ export function WorkspaceCanvasView({
             fontSize: '12px',
             fontWeight: '500',
             color: viewMode === 'default' ? '#ffffff' : 'var(--cove-text-1)',
-            backgroundColor: viewMode === 'default' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            backgroundColor:
+              viewMode === 'default' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
@@ -377,7 +378,8 @@ export function WorkspaceCanvasView({
             fontSize: '12px',
             fontWeight: '500',
             color: viewMode === 'architecture' ? '#ffffff' : 'var(--cove-text-1)',
-            backgroundColor: viewMode === 'architecture' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            backgroundColor:
+              viewMode === 'architecture' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
             border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',

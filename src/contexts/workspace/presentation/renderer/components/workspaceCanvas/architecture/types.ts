@@ -1,26 +1,29 @@
 /**
  * 架构视图模式类型定义
- * 
+ *
  * 本文件定义架构视图模式 (Architecture View Mode) 使用的类型。
  * 架构视图用于可视化 Agent 之间的协作关系和系统架构。
- * 
+ *
  * @packageDocumentation
  */
 
-import type { AgentProviderId, AgentRuntimeStatus } from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
+import type {
+  AgentProviderId,
+  AgentRuntimeStatus,
+} from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
 import type { Point } from '../../types'
 import type { LabelColor } from '@shared/types/labelColor'
 
 /**
  * 画布视图模式
- * 
+ *
  * 定义当前画布的显示模式。
  */
 export type CanvasViewMode = 'default' | 'architecture'
 
 /**
  * 架构视图配置
- * 
+ *
  * 配置架构视图的显示选项。
  */
 export interface ArchitectureViewConfig {
@@ -52,7 +55,7 @@ export const DEFAULT_ARCHITECTURE_VIEW_CONFIG: ArchitectureViewConfig = {
 
 /**
  * Agent 提供者类型
- * 
+ *
  * 与 AgentApiTypes 中的 AgentProviderId 保持一致，但添加显示名称。
  */
 export interface AgentProviderInfo {
@@ -104,19 +107,19 @@ export const AGENT_PROVIDERS: Record<AgentProviderId, AgentProviderInfo> = {
 
 /**
  * 协作关系类型
- * 
+ *
  * 定义 Agent 之间的协作关系类型。
  */
-export type CollaborationType = 
-  | 'upstream'      // 上游 (接收任务)
-  | 'downstream'    // 下游 (发送任务)
-  | 'peer'          // 平级 (协作)
-  | 'supervisor'    // 监督 (审核/审查)
-  | 'auditor'       // 审计 (安全检查)
+export type CollaborationType =
+  | 'upstream' // 上游 (接收任务)
+  | 'downstream' // 下游 (发送任务)
+  | 'peer' // 平级 (协作)
+  | 'supervisor' // 监督 (审核/审查)
+  | 'auditor' // 审计 (安全检查)
 
 /**
  * Agent 协作关系
- * 
+ *
  * 表示两个 Agent 之间的协作关系。
  */
 export interface CollaborationLink {
@@ -136,7 +139,7 @@ export interface CollaborationLink {
 
 /**
  * Agent 节点数据
- * 
+ *
  * 架构视图中 Agent 节点的数据结构。
  */
 export interface ArchitectureAgentNode {
@@ -174,7 +177,7 @@ export interface ArchitectureAgentNode {
 
 /**
  * 架构视图状态
- * 
+ *
  * 架构视图的完整状态。
  */
 export interface ArchitectureViewState {
@@ -198,7 +201,7 @@ export interface ArchitectureViewState {
 
 /**
  * Agent 状态颜色映射
- * 
+ *
  * 根据 Agent 状态返回对应的颜色。
  */
 export function getAgentStatusColor(status: AgentRuntimeStatus): string {
@@ -224,7 +227,7 @@ export function getAgentStatusColor(status: AgentRuntimeStatus): string {
 
 /**
  * Agent 状态文本标签
- * 
+ *
  * 根据 Agent 状态返回对应的中文标签。
  */
 export function getAgentStatusLabel(status: AgentRuntimeStatus): string {
@@ -250,7 +253,7 @@ export function getAgentStatusLabel(status: AgentRuntimeStatus): string {
 
 /**
  * 协作关系颜色映射
- * 
+ *
  * 根据关系类型返回对应的颜色。
  */
 export function getCollaborationColor(type: CollaborationType): string {
@@ -272,7 +275,7 @@ export function getCollaborationColor(type: CollaborationType): string {
 
 /**
  * 协作关系文本标签
- * 
+ *
  * 根据关系类型返回对应的中文标签。
  */
 export function getCollaborationLabel(type: CollaborationType): string {
@@ -294,7 +297,7 @@ export function getCollaborationLabel(type: CollaborationType): string {
 
 /**
  * 协作关系连线样式
- * 
+ *
  * 根据关系类型返回连线样式配置。
  */
 export function getCollaborationStrokeStyle(type: CollaborationType): {

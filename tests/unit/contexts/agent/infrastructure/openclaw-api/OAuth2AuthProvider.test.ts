@@ -1,12 +1,15 @@
 /**
  * OAuth2AuthProvider 单元测试
- * 
+ *
  * 测试 OAuth 2.0 认证提供者的功能。
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { OAuth2AuthProvider } from '../../../../../src/contexts/agent/infrastructure/openclaw-api/OAuth2AuthProvider'
-import type { OAuth2Config, OAuth2Token } from '../../../../../src/contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
+import type {
+  OAuth2Config,
+  OAuth2Token,
+} from '../../../../../src/contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
 import { AgentApiErrorCode } from '../../../../../src/contexts/agent/infrastructure/openclaw-api/errors'
 
 // Mock fetch globally
@@ -71,7 +74,7 @@ describe('OAuth2AuthProvider', () => {
 
     it('should request new token if no cached token', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(null)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -90,7 +93,7 @@ describe('OAuth2AuthProvider', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.any(Object),
-        })
+        }),
       )
     })
 
@@ -99,9 +102,9 @@ describe('OAuth2AuthProvider', () => {
         ...mockToken,
         expiresAt: Date.now() - 1000, // Expired 1 second ago
       }
-      
+
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(expiredToken)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -119,7 +122,7 @@ describe('OAuth2AuthProvider', () => {
 
     it('should throw auth error if token request fails', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(null)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -134,7 +137,7 @@ describe('OAuth2AuthProvider', () => {
 
     it('should throw network error if fetch fails', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(null)
-      
+
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
       await expect(provider.getAccessToken()).rejects.toThrow()
@@ -147,9 +150,9 @@ describe('OAuth2AuthProvider', () => {
         ...mockToken,
         refreshToken: 'current-refresh-token',
       }
-      
+
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(currentToken)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -167,7 +170,7 @@ describe('OAuth2AuthProvider', () => {
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('grant_type=refresh_token'),
-        })
+        }),
       )
     })
 
@@ -176,7 +179,7 @@ describe('OAuth2AuthProvider', () => {
         ...mockToken,
         refreshToken: '',
       }
-      
+
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(tokenWithoutRefresh)
 
       await expect(provider.refreshAccessToken()).rejects.toThrow()
@@ -187,9 +190,9 @@ describe('OAuth2AuthProvider', () => {
         ...mockToken,
         refreshToken: 'current-refresh-token',
       }
-      
+
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(currentToken)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -206,7 +209,7 @@ describe('OAuth2AuthProvider', () => {
   describe('revokeToken', () => {
     it('should revoke token successfully', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(mockToken)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
       })
@@ -218,14 +221,14 @@ describe('OAuth2AuthProvider', () => {
         expect.objectContaining({
           method: 'POST',
           body: expect.stringContaining('token='),
-        })
+        }),
       )
     })
 
     it('should clear cached token after revocation', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(mockToken)
       const saveTokenSpy = vi.spyOn(provider as any, 'saveToken').mockResolvedValue(undefined)
-      
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
       })
@@ -237,7 +240,7 @@ describe('OAuth2AuthProvider', () => {
 
     it('should not throw if revoke request fails', async () => {
       vi.spyOn(provider as any, 'loadToken').mockResolvedValue(mockToken)
-      
+
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
       // Should not throw
@@ -285,7 +288,7 @@ describe('OAuth2AuthProvider', () => {
           method: 'POST',
           body: expect.stringContaining('grant_type=authorization_code'),
           body: expect.stringContaining('code=auth-code'),
-        })
+        }),
       )
 
       expect(token.accessToken).toBe('access-token')

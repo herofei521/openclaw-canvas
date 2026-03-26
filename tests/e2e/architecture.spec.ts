@@ -1,6 +1,6 @@
 /**
  * Architecture View E2E Tests
- * 
+ *
  * 测试架构视图的关键路径：
  * - 视图切换：启动应用 → 切换架构视图 → 验证渲染
  * - 节点渲染：显示五部门 Agent 节点
@@ -131,7 +131,7 @@ async function switchToArchitectureView(window: Page): Promise<void> {
   // 查找视图切换按钮并点击
   const viewModeToggle = window.locator('[data-testid="view-mode-toggle"]')
   const architectureButton = window.locator('[data-testid="architecture-view-button"]')
-  
+
   // 尝试多种方式切换到架构视图
   if (await viewModeToggle.isVisible()) {
     await viewModeToggle.click()
@@ -140,7 +140,7 @@ async function switchToArchitectureView(window: Page): Promise<void> {
     // 备用方案：直接点击架构视图按钮
     await architectureButton.click()
   }
-  
+
   // 等待架构视图渲染
   await window.waitForSelector('[data-testid="architecture-view"]', { timeout: 10000 })
 }
@@ -152,7 +152,7 @@ test.describe('Architecture View E2E', () => {
     try {
       // 等待应用加载完成
       await window.waitForLoadState('domcontentloaded')
-      
+
       // 验证应用已启动
       const title = await window.title()
       expect(title).toBeDefined()
@@ -222,7 +222,7 @@ test.describe('Architecture View E2E', () => {
       // 验证协作连线存在 (SVG 路径)
       const collaborationPaths = window.locator('svg path[data-testid^="collaboration-link"]')
       const collaborationCount = await collaborationPaths.count()
-      
+
       // 至少应该有 4 条连线 (中书→门下，门下→兵部，兵部内部等)
       expect(collaborationCount).toBeGreaterThanOrEqual(4)
 
@@ -308,10 +308,10 @@ test.describe('Architecture View E2E', () => {
       // 验证显示悬停提示或高亮相关连线
       const tooltip = window.locator('[data-testid="node-tooltip"]')
       const highlightedLinks = window.locator('svg path.highlighted')
-      
+
       // 至少应该显示提示或高亮连线之一
       const tooltipVisible = await tooltip.isVisible()
-      const linksHighlighted = await highlightedLinks.count() > 0
+      const linksHighlighted = (await highlightedLinks.count()) > 0
       expect(tooltipVisible || linksHighlighted).toBe(true)
     } finally {
       await electronApp.close()
@@ -361,16 +361,20 @@ test.describe('Architecture View E2E', () => {
       // 获取所有连线路径
       const collaborationPaths = window.locator('svg path[data-testid^="collaboration-link"]')
       const count = await collaborationPaths.count()
-      
+
       expect(count).toBeGreaterThan(0)
 
       // 验证路径使用贝塞尔曲线 (应该包含 C 或 Q 指令)
       const firstPath = collaborationPaths.first()
       const pathData = await firstPath.getAttribute('d')
       expect(pathData).toBeTruthy()
-      
+
       // 贝塞尔曲线应该包含 C (三次) 或 Q (二次) 指令
-      const hasBezier = pathData?.includes('C') || pathData?.includes('Q') || pathData?.includes('c') || pathData?.includes('q')
+      const hasBezier =
+        pathData?.includes('C') ||
+        pathData?.includes('Q') ||
+        pathData?.includes('c') ||
+        pathData?.includes('q')
       expect(hasBezier).toBe(true)
     } finally {
       await electronApp.close()
@@ -389,7 +393,7 @@ test.describe('Architecture View E2E', () => {
 
       // 切换到架构视图
       await switchToArchitectureView(window)
-      
+
       // 验证架构视图显示
       const architectureView = window.locator('[data-testid="architecture-view"]')
       await expect(architectureView).toBeVisible()
@@ -397,14 +401,14 @@ test.describe('Architecture View E2E', () => {
       // 切换回默认视图
       const viewModeToggle = window.locator('[data-testid="view-mode-toggle"]')
       await viewModeToggle.click()
-      
+
       const defaultButton = window.locator('[data-testid="default-view-button"]')
       await defaultButton.click()
 
       // 验证默认视图显示
       const defaultView = window.locator('[data-testid="default-view"]')
       await expect(defaultView).toBeVisible()
-      
+
       // 验证架构视图隐藏
       await expect(architectureView).not.toBeVisible()
     } finally {
@@ -427,11 +431,11 @@ test.describe('Architecture View E2E', () => {
       // 验证显示空状态提示
       const emptyState = window.locator('[data-testid="architecture-empty-state"]')
       await expect(emptyState).toBeVisible()
-      
+
       // 或者验证画布区域存在但没有节点
       const canvas = window.locator('[data-testid="architecture-view"]')
       await expect(canvas).toBeVisible()
-      
+
       const nodes = canvas.locator('[data-testid^="node-"]')
       const nodeCount = await nodes.count()
       expect(nodeCount).toBe(0)

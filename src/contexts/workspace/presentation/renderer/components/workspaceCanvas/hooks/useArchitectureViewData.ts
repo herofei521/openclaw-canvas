@@ -1,15 +1,18 @@
 /**
  * 架构视图数据 Hook
- * 
+ *
  * 从 Agent API 客户端获取 Agent 数据并转换为架构视图所需格式。
- * 
+ *
  * @packageDocumentation
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ArchitectureAgentNode, CollaborationLink } from './architecture/types'
 import { AGENT_PROVIDERS } from './architecture/types'
-import type { AgentInfo, AgentRuntimeStatus } from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
+import type {
+  AgentInfo,
+  AgentRuntimeStatus,
+} from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
 import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-api/OpenClawApiClient'
 import type { LabelColor } from '@shared/types/labelColor'
 import type { Point } from '../types'
@@ -53,7 +56,7 @@ const LABEL_COLORS: (LabelColor | null)[] = [
 
 /**
  * 根据 Agent ID 生成确定性位置
- * 
+ *
  * 使用简单的哈希算法确保相同 Agent 始终在相同位置。
  */
 function generatePosition(agentId: string, index: number): Point {
@@ -61,10 +64,10 @@ function generatePosition(agentId: string, index: number): Point {
   const gridWidth = 300
   const gridHeight = 200
   const gap = 50
-  
+
   const col = index % 4
   const row = Math.floor(index / 4)
-  
+
   return {
     x: 100 + col * (gridWidth + gap) + (hash % 30),
     y: 100 + row * (gridHeight + gap) + (Math.floor(hash / 30) % 20),
@@ -81,18 +84,18 @@ function generateLabelColor(agentId: string): LabelColor | null {
 
 /**
  * 模拟协作关系生成
- * 
+ *
  * 根据 Agent 提供者类型生成合理的协作关系。
  * 实际应用中应从配置或历史数据中获取。
  */
 function generateCollaborations(nodes: ArchitectureAgentNode[]): CollaborationLink[] {
   const collaborations: CollaborationLink[] = []
-  
+
   // 根据三省六部制生成典型协作关系
   const zhongshu = nodes.filter(n => n.provider === 'claude-code' || n.provider === 'codex')
   const menxia = nodes.filter(n => n.provider === 'gemini')
   const bingbu = nodes.filter(n => n.provider === 'openclaw' || n.provider === 'opencode')
-  
+
   // 中书省 -> 门下省 (审核)
   zhongshu.forEach(zhongshuNode => {
     menxia.forEach(menxiaNode => {
@@ -105,7 +108,7 @@ function generateCollaborations(nodes: ArchitectureAgentNode[]): CollaborationLi
       })
     })
   })
-  
+
   // 门下省 -> 兵部 (执行)
   menxia.forEach(menxiaNode => {
     bingbu.forEach(bingbuNode => {
@@ -118,7 +121,7 @@ function generateCollaborations(nodes: ArchitectureAgentNode[]): CollaborationLi
       })
     })
   })
-  
+
   // 兵部内部协作
   for (let i = 0; i < bingbu.length; i++) {
     for (let j = i + 1; j < bingbu.length; j++) {
@@ -131,7 +134,7 @@ function generateCollaborations(nodes: ArchitectureAgentNode[]): CollaborationLi
       })
     }
   }
-  
+
   return collaborations
 }
 
@@ -159,9 +162,9 @@ function mapAgentToNode(agent: AgentInfo, index: number): ArchitectureAgentNode 
 
 /**
  * 使用架构视图数据
- * 
+ *
  * 从 Agent API 客户端获取数据并转换为架构视图格式。
- * 
+ *
  * @param apiClient - Agent API 客户端实例 (可选)
  * @param autoRefresh - 是否自动刷新 (默认 true)
  * @param refreshInterval - 刷新间隔 (毫秒，默认 30000)
@@ -170,7 +173,7 @@ function mapAgentToNode(agent: AgentInfo, index: number): ArchitectureAgentNode 
 export function useArchitectureViewData(
   apiClient?: OpenClawApiClient,
   autoRefresh: boolean = true,
-  refreshInterval: number = 30000
+  refreshInterval: number = 30000,
 ): ArchitectureViewDataState {
   const [nodes, setNodes] = useState<ArchitectureAgentNode[]>([])
   const [collaborations, setCollaborations] = useState<CollaborationLink[]>([])
@@ -204,7 +207,7 @@ export function useArchitectureViewData(
       const nodesWithCollaborations = mappedNodes.map(node => ({
         ...node,
         collaborations: generatedCollaborations.filter(
-          link => link.fromAgentId === node.id || link.toAgentId === node.id
+          link => link.fromAgentId === node.id || link.toAgentId === node.id,
         ),
       }))
 
@@ -240,19 +243,22 @@ export function useArchitectureViewData(
       error,
       refresh: fetchData,
     }),
-    [nodes, collaborations, isLoading, error, fetchData]
+    [nodes, collaborations, isLoading, error, fetchData],
   )
 }
 
 /**
  * 使用模拟数据 (用于开发和测试)
- * 
+ *
  * @returns 架构视图数据状态
  */
 export function useArchitectureViewDataMock(): ArchitectureViewDataState {
   const [isLoading, setIsLoading] = useState(true)
 
-  const mockData = useMemo((): { nodes: ArchitectureAgentNode[]; collaborations: CollaborationLink[] } => {
+  const mockData = useMemo((): {
+    nodes: ArchitectureAgentNode[]
+    collaborations: CollaborationLink[]
+  } => {
     const mockAgents: AgentInfo[] = [
       {
         id: 'agent-zhongshu-001',
@@ -261,7 +267,12 @@ export function useArchitectureViewDataMock(): ArchitectureViewDataState {
         provider: 'claude-code',
         status: 'running',
         models: [
-          { id: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', description: 'Anthropic Claude Sonnet 4.5', isDefault: true },
+          {
+            id: 'claude-sonnet-4-5-20250929',
+            displayName: 'Claude Sonnet 4.5',
+            description: 'Anthropic Claude Sonnet 4.5',
+            isDefault: true,
+          },
         ],
         createdAt: '2026-03-20T00:00:00Z',
         updatedAt: '2026-03-26T15:00:00Z',
@@ -273,7 +284,12 @@ export function useArchitectureViewDataMock(): ArchitectureViewDataState {
         provider: 'gemini',
         status: 'running',
         models: [
-          { id: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', description: 'Google Gemini 2.5 Pro', isDefault: true },
+          {
+            id: 'gemini-2.5-pro',
+            displayName: 'Gemini 2.5 Pro',
+            description: 'Google Gemini 2.5 Pro',
+            isDefault: true,
+          },
         ],
         createdAt: '2026-03-20T00:00:00Z',
         updatedAt: '2026-03-26T14:30:00Z',
@@ -285,7 +301,12 @@ export function useArchitectureViewDataMock(): ArchitectureViewDataState {
         provider: 'openclaw',
         status: 'running',
         models: [
-          { id: 'minimax-m2.7', displayName: 'MiniMax M2.7', description: 'MiniMax M2.7', isDefault: true },
+          {
+            id: 'minimax-m2.7',
+            displayName: 'MiniMax M2.7',
+            description: 'MiniMax M2.7',
+            isDefault: true,
+          },
         ],
         createdAt: '2026-03-22T00:00:00Z',
         updatedAt: '2026-03-26T15:30:00Z',
@@ -322,7 +343,7 @@ export function useArchitectureViewDataMock(): ArchitectureViewDataState {
     const nodesWithCollaborations = nodes.map(node => ({
       ...node,
       collaborations: collaborations.filter(
-        link => link.fromAgentId === node.id || link.toAgentId === node.id
+        link => link.fromAgentId === node.id || link.toAgentId === node.id,
       ),
     }))
 
@@ -347,7 +368,7 @@ export function useArchitectureViewDataMock(): ArchitectureViewDataState {
         setTimeout(() => setIsLoading(false), 500)
       },
     }),
-    [mockData, isLoading]
+    [mockData, isLoading],
   )
 }
 

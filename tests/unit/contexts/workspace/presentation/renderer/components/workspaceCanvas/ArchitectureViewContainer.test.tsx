@@ -1,6 +1,6 @@
 /**
  * ArchitectureViewContainer 组件测试
- * 
+ *
  * 测试架构视图容器组件的功能：
  * - 正常渲染、加载状态、错误状态、重试功能
  * - 数据转换 (AgentInfo → ArchitectureAgentNode)
@@ -15,29 +15,34 @@ import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-
 import type { AgentInfo } from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
 
 // Mock the ArchitectureView component
-vi.mock('@contexts/workspace/presentation/renderer/components/workspaceCanvas/architecture/ArchitectureView', () => ({
-  ArchitectureView: ({ nodes, collaborations }: { nodes: any[]; collaborations: any[] }) => (
-    <div data-testid="architecture-view">
-      <div data-testid="nodes-count">Nodes: {nodes.length}</div>
-      <div data-testid="collaborations-count">Collaborations: {collaborations.length}</div>
-      {nodes.map(node => (
-        <div key={node.id} data-testid={`node-${node.id}`}>
-          {node.name}
-        </div>
-      ))}
-    </div>
-  ),
-}))
+vi.mock(
+  '@contexts/workspace/presentation/renderer/components/workspaceCanvas/architecture/ArchitectureView',
+  () => ({
+    ArchitectureView: ({ nodes, collaborations }: { nodes: any[]; collaborations: any[] }) => (
+      <div data-testid="architecture-view">
+        <div data-testid="nodes-count">Nodes: {nodes.length}</div>
+        <div data-testid="collaborations-count">Collaborations: {collaborations.length}</div>
+        {nodes.map(node => (
+          <div key={node.id} data-testid={`node-${node.id}`}>
+            {node.name}
+          </div>
+        ))}
+      </div>
+    ),
+  }),
+)
 
 // Mock the useArchitectureViewData hook
-vi.mock('@contexts/workspace/presentation/renderer/components/workspaceCanvas/hooks/useArchitectureViewData', () => ({
-  useArchitectureViewData: vi.fn(),
-  useArchitectureViewDataMock: vi.fn(),
-}))
-
-const { useArchitectureViewData, useArchitectureViewDataMock } = await import(
-  '@contexts/workspace/presentation/renderer/components/workspaceCanvas/hooks/useArchitectureViewData'
+vi.mock(
+  '@contexts/workspace/presentation/renderer/components/workspaceCanvas/hooks/useArchitectureViewData',
+  () => ({
+    useArchitectureViewData: vi.fn(),
+    useArchitectureViewDataMock: vi.fn(),
+  }),
 )
+
+const { useArchitectureViewData, useArchitectureViewDataMock } =
+  await import('@contexts/workspace/presentation/renderer/components/workspaceCanvas/hooks/useArchitectureViewData')
 
 describe('ArchitectureViewContainer', () => {
   beforeEach(() => {
@@ -69,7 +74,12 @@ describe('ArchitectureViewContainer', () => {
       })
 
       const customLoading = () => <div data-testid="custom-loading">Custom Loading...</div>
-      render(<ArchitectureViewContainer apiClient={{} as OpenClawApiClient} loadingRenderer={customLoading} />)
+      render(
+        <ArchitectureViewContainer
+          apiClient={{} as OpenClawApiClient}
+          loadingRenderer={customLoading}
+        />,
+      )
 
       expect(screen.getByTestId('custom-loading')).toBeInTheDocument()
       expect(screen.queryByText('加载 Agent 数据...')).not.toBeInTheDocument()
@@ -107,10 +117,17 @@ describe('ArchitectureViewContainer', () => {
       const customError = (error: Error, retry: () => void) => (
         <div data-testid="custom-error">
           Custom Error: {error.message}
-          <button onClick={retry} data-testid="custom-retry">Retry</button>
+          <button onClick={retry} data-testid="custom-retry">
+            Retry
+          </button>
         </div>
       )
-      render(<ArchitectureViewContainer apiClient={{} as OpenClawApiClient} errorRenderer={customError} />)
+      render(
+        <ArchitectureViewContainer
+          apiClient={{} as OpenClawApiClient}
+          errorRenderer={customError}
+        />,
+      )
 
       expect(screen.getByTestId('custom-error')).toBeInTheDocument()
       expect(screen.getByText('Custom Error: Network error')).toBeInTheDocument()
@@ -195,7 +212,7 @@ describe('ArchitectureViewContainer', () => {
           onViewModeChange={onViewModeChange}
           onSelectionChange={onSelectionChange}
           onConfigChange={onConfigChange}
-        />
+        />,
       )
 
       // ArchitectureView should be rendered with callbacks
@@ -205,7 +222,14 @@ describe('ArchitectureViewContainer', () => {
 
   describe('mock data mode', () => {
     it('should use mock data when useMockData is true', () => {
-      const mockNodes = [{ id: 'mock-agent', name: 'Mock Agent', provider: 'claude-code' as const, collaborations: [] }]
+      const mockNodes = [
+        {
+          id: 'mock-agent',
+          name: 'Mock Agent',
+          provider: 'claude-code' as const,
+          collaborations: [],
+        },
+      ]
       const mockCollaborations = []
 
       vi.mocked(useArchitectureViewDataMock).mockReturnValue({
@@ -289,7 +313,9 @@ describe('ArchitectureViewContainer', () => {
         refresh: refreshMock,
       })
 
-      render(<ArchitectureViewContainer apiClient={{} as OpenClawApiClient} refreshInterval={60000} />)
+      render(
+        <ArchitectureViewContainer apiClient={{} as OpenClawApiClient} refreshInterval={60000} />,
+      )
 
       // Component should be rendered successfully
       expect(screen.getByTestId('architecture-view')).toBeInTheDocument()
@@ -317,7 +343,7 @@ describe('ArchitectureViewContainer', () => {
         <ArchitectureViewContainer
           apiClient={{} as OpenClawApiClient}
           initialConfig={initialConfig}
-        />
+        />,
       )
 
       expect(screen.getByTestId('architecture-view')).toBeInTheDocument()

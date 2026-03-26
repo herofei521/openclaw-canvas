@@ -1,10 +1,10 @@
 /**
  * OpenClaw Agent API 客户端
- * 
+ *
  * 提供与 OpenClaw Agent API 交互的完整客户端实现。
- * 
+ *
  * @packageDocumentation
- * 
+ *
  * @example
  * ```typescript
  * // 创建客户端
@@ -19,7 +19,7 @@
  *     scopes: ['agent:read', 'agent:write'],
  *   },
  * })
- * 
+ *
  * // 调用 Agent
  * const response = await client.invokeAgent({
  *   agentId: 'bingbu_coder',
