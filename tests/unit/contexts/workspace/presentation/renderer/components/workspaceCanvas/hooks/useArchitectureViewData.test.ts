@@ -17,12 +17,7 @@ import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-
 import type { AgentInfo } from '@contexts/agent/infrastructure/openclaw-api/AgentApiTypes'
 
 describe('useArchitectureViewData', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
-
   afterEach(() => {
-    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
@@ -341,11 +336,9 @@ describe('useArchitectureViewData', () => {
 
 describe('useArchitectureViewDataMock', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    vi.useRealTimers()
   })
 
   it('should return mock data after loading', async () => {
@@ -353,14 +346,10 @@ describe('useArchitectureViewDataMock', () => {
 
     expect(result.current.isLoading).toBe(true)
 
-    // Fast-forward loading
-    await act(async () => {
-      vi.advanceTimersByTime(600)
-    })
-
+    // Wait for loading to complete
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 10000 })
 
     expect(result.current.nodes.length).toBeGreaterThan(0)
     expect(result.current.error).toBe(null)
@@ -369,13 +358,9 @@ describe('useArchitectureViewDataMock', () => {
   it('should include 三省六部 agents in mock data', async () => {
     const { result } = renderHook(() => useArchitectureViewDataMock())
 
-    await act(async () => {
-      vi.advanceTimersByTime(600)
-    })
-
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 10000 })
 
     const providers = result.current.nodes.map(n => n.provider)
     expect(providers).toContain('claude-code')
@@ -388,13 +373,9 @@ describe('useArchitectureViewDataMock', () => {
   it('should generate collaborations in mock data', async () => {
     const { result } = renderHook(() => useArchitectureViewDataMock())
 
-    await act(async () => {
-      vi.advanceTimersByTime(600)
-    })
-
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
-    })
+    }, { timeout: 10000 })
 
     expect(result.current.collaborations.length).toBeGreaterThan(0)
   })

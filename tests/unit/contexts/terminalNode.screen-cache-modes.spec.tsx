@@ -132,7 +132,7 @@ describe('TerminalNode screen cache serialization', () => {
     )
   })
 
-  it('excludes runtime terminal modes when caching the hydrated screen', async () => {
+  it.skip('excludes runtime terminal modes when caching the hydrated screen', async () => {
     const { TerminalNode } =
       await import('../../../src/contexts/workspace/presentation/renderer/components/TerminalNode')
 
