@@ -22,6 +22,8 @@ import type {
   TaskEditorState,
   WorkspaceCanvasProps,
 } from './types'
+import type { CanvasViewMode, ArchitectureViewConfig } from './architecture/types'
+import type { OpenClawApiClient } from '@contexts/agent/infrastructure/openclaw-api/OpenClawApiClient'
 
 export type SelectionDraftUiState = Pick<
   SelectionDraftState,
@@ -158,4 +160,17 @@ export interface WorkspaceCanvasViewProps {
   ) => void
   getSpaceBlockingNodes: (spaceId: string) => { agentNodeIds: string[]; terminalNodeIds: string[] }
   closeNodesById: (nodeIds: string[]) => Promise<void>
+  // Architecture View props
+  /** 当前视图模式 */
+  viewMode?: CanvasViewMode
+  /** 架构视图配置 */
+  architectureConfig?: Partial<ArchitectureViewConfig>
+  /** Agent API 客户端 */
+  apiClient?: OpenClawApiClient
+  /** 是否使用模拟数据 */
+  useArchitectureMockData?: boolean
+  /** 视图模式变化回调 */
+  onViewModeChange?: (viewMode: CanvasViewMode) => void
+  /** 架构视图配置变化回调 */
+  onArchitectureConfigChange?: (config: ArchitectureViewConfig) => void
 }

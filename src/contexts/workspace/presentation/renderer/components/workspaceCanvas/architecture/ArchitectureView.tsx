@@ -233,10 +233,11 @@ export function ArchitectureView({
   }
 
   return (
-    <div style={containerStyle} onClick={handleBackgroundClick}>
+    <div style={containerStyle} onClick={handleBackgroundClick} data-testid="architecture-view">
       {/* 工具栏 */}
       <div style={toolbarStyle}>
         <button
+          data-testid="default-view-button"
           style={viewMode === 'default' ? activeButtonStyle : buttonStyle}
           onClick={switchToDefault}
           title="切换到默认视图"
@@ -244,6 +245,7 @@ export function ArchitectureView({
           默认视图
         </button>
         <button
+          data-testid="architecture-view-button"
           style={viewMode === 'architecture' ? activeButtonStyle : buttonStyle}
           onClick={switchToArchitecture}
           title="切换到架构视图"
@@ -251,6 +253,7 @@ export function ArchitectureView({
           架构视图
         </button>
         <button
+          data-testid="view-mode-toggle"
           style={buttonStyle}
           onClick={toggleViewMode}
           title="切换视图模式"

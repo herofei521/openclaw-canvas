@@ -25,6 +25,7 @@ import { WorkspaceSnapGuidesOverlay } from './view/WorkspaceSnapGuidesOverlay'
 import { WorkspaceCanvasTopOverlays } from './view/WorkspaceCanvasTopOverlays'
 import { WorkspaceSpaceActionMenu } from './view/WorkspaceSpaceActionMenu'
 import { WorkspaceSpaceRegionsOverlay } from './view/WorkspaceSpaceRegionsOverlay'
+import { ArchitectureViewContainer } from './ArchitectureViewContainer'
 import { isEditableDomTarget } from './domTargets'
 import { selectDragSurfaceSelectionMode } from '../terminalNode/reactFlowState'
 
@@ -142,6 +143,13 @@ export function WorkspaceCanvasView({
   updateSpaceDirectory,
   getSpaceBlockingNodes,
   closeNodesById,
+  // Architecture View props
+  viewMode = 'default',
+  architectureConfig,
+  apiClient,
+  useArchitectureMockData = true,
+  onViewModeChange,
+  onArchitectureConfigChange,
 }: WorkspaceCanvasViewProps): React.JSX.Element {
   const reactFlowStore = useStoreApi()
   const isDragSurfaceSelectionMode = useStore(selectDragSurfaceSelectionMode)
@@ -273,6 +281,21 @@ export function WorkspaceCanvasView({
     nodes,
   })
 
+  // 渲染架构视图
+  if (viewMode === 'architecture') {
+    return (
+      <ArchitectureViewContainer
+        apiClient={apiClient}
+        useMockData={useArchitectureMockData}
+        initialConfig={architectureConfig}
+        onViewModeChange={onViewModeChange}
+        onSelectionChange={() => {}}
+        onConfigChange={onArchitectureConfigChange}
+      />
+    )
+  }
+
+  // 渲染默认画布视图
   return (
     <div
       ref={canvasRef}
@@ -280,6 +303,7 @@ export function WorkspaceCanvasView({
       data-canvas-input-mode={resolvedCanvasInputMode}
       data-selected-node-count={selectedNodeCount}
       data-cove-drag-surface-selection-mode={isDragSurfaceSelectionMode ? 'true' : 'false'}
+      data-view-mode={viewMode}
       tabIndex={-1}
       onClick={onCanvasClick}
       onPaste={handleCanvasPaste}
@@ -311,6 +335,80 @@ export function WorkspaceCanvasView({
         handleCanvasWheelCapture(event.nativeEvent)
       }}
     >
+      {/* 视图切换工具栏 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          display: 'flex',
+          gap: '8px',
+          zIndex: 1000,
+          backgroundColor: 'var(--cove-surface-1)',
+          padding: '8px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <button
+          type="button"
+          data-testid="default-view-button"
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: viewMode === 'default' ? '#ffffff' : 'var(--cove-text-1)',
+            backgroundColor: viewMode === 'default' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => onViewModeChange?.('default')}
+          title="默认视图"
+        >
+          默认视图
+        </button>
+        <button
+          type="button"
+          data-testid="architecture-view-button"
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: viewMode === 'architecture' ? '#ffffff' : 'var(--cove-text-1)',
+            backgroundColor: viewMode === 'architecture' ? 'var(--cove-primary)' : 'var(--cove-surface-2)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => onViewModeChange?.('architecture')}
+          title="架构视图"
+        >
+          架构视图
+        </button>
+        <button
+          type="button"
+          data-testid="view-mode-toggle"
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: 'var(--cove-text-1)',
+            backgroundColor: 'var(--cove-surface-2)',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => onViewModeChange?.(viewMode === 'default' ? 'architecture' : 'default')}
+          title="切换视图模式"
+        >
+          切换视图
+        </button>
+      </div>
+
       <ReactFlow<Node<TerminalNodeData>, Edge>
         nodes={filteredNodes}
         edges={filteredEdges}
