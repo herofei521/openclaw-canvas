@@ -199,9 +199,9 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
   releaseNotesSeenVersion: null,
   hideWorktreeMismatchDropWarning: false,
   openclawApi: {
-    gatewayUrl: 'http://localhost:9876',
-    oauthAuthorizeUrl: 'http://localhost:9876/oauth/authorize',
-    oauthTokenUrl: 'http://localhost:9876/oauth/token',
+    gatewayUrl: 'http://localhost:12082',
+    oauthAuthorizeUrl: 'http://localhost:12082/oauth/authorize',
+    oauthTokenUrl: 'http://localhost:12082/oauth/token',
     enabled: true,
   },
 }
