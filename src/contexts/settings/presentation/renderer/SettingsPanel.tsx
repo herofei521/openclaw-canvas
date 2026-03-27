@@ -9,6 +9,7 @@ import {
   type AgentSettings,
   type CanvasInputMode,
   type FocusNodeTargetZoom,
+  type OpenClawApiConfig,
   type StandardWindowSizeBucket,
   type TaskTitleProvider,
   type UiLanguage,
@@ -48,6 +49,10 @@ interface SettingsPanelProps {
   onDownloadUpdate: () => void
   onInstallUpdate: () => void
   onClose: () => void
+  /** OpenClaw API connection test handler */
+  onTestOpenClawConnection?: () => Promise<{ success: boolean; message: string; error?: string }>
+  /** OpenClaw OAuth authorization handler */
+  onStartOpenClawOAuth?: () => Promise<void>
 }
 
 type CorePageId =
@@ -97,6 +102,8 @@ export function SettingsPanel({
   onDownloadUpdate,
   onInstallUpdate,
   onClose,
+  onTestOpenClawConnection,
+  onStartOpenClawOAuth,
 }: SettingsPanelProps): React.JSX.Element {
   const { t } = useTranslation()
   const { terminalProfiles, detectedDefaultTerminalProfileId } = useTerminalProfiles()
@@ -161,6 +168,9 @@ export function SettingsPanel({
     onChange({ ...settings, keybindings })
   const updateGitHubPullRequestsEnabled = (enabled: boolean): void =>
     onChange({ ...settings, githubPullRequestsEnabled: enabled })
+
+  const updateOpenClawApi = (config: OpenClawApiConfig): void =>
+    onChange({ ...settings, openclawApi: config })
 
   const removeTaskTagOption = (tag: string): void => {
     const nextTags = settings.taskTagOptions.filter(option => option !== tag)
@@ -421,7 +431,45 @@ export function SettingsPanel({
             {activePageId === 'integrations' ? (
               <IntegrationsSection
                 githubPullRequestsEnabled={settings.githubPullRequestsEnabled}
+                openclawApi={settings.openclawApi}
                 onChangeGitHubPullRequestsEnabled={updateGitHubPullRequestsEnabled}
+                onChangeOpenClawApi={updateOpenClawApi}
+                onTestOpenClawConnection={
+                  onTestOpenClawConnection ||
+                  (async () => {
+                    // Default implementation - test connection to gateway
+                    try {
+                      const response = await fetch(
+                        `${settings.openclawApi.gatewayUrl}/health`,
+                        { method: 'GET', signal: AbortSignal.timeout(5000) },
+                      )
+                      if (response.ok) {
+                        return { success: true, message: 'Connection successful' }
+                      }
+                      return {
+                        success: false,
+                        message: `HTTP ${response.status}`,
+                        error: `HTTP_${response.status}`,
+                      }
+                    } catch (error) {
+                      return {
+                        success: false,
+                        message: error instanceof Error ? error.message : 'Connection failed',
+                        error: error instanceof Error ? error.message : 'CONNECTION_FAILED',
+                      }
+                    }
+                  })
+                }
+                onStartOpenClawOAuth={
+                  onStartOpenClawOAuth ||
+                  (async () => {
+                    // Default implementation - open OAuth URL in browser
+                    const authUrl = settings.openclawApi.oauthAuthorizeUrl
+                    if (authUrl) {
+                      window.open(authUrl, '_blank')
+                    }
+                  })
+                }
               />
             ) : null}
 

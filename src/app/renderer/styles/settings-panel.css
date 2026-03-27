@@ -214,6 +214,23 @@
   color: var(--cove-text-muted);
 }
 
+.settings-panel__connection-status {
+  font-size: calc(12px * var(--cove-ui-font-scale));
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.settings-panel__connection-status--success {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.settings-panel__connection-status--error {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
 .settings-panel__path-chip {
   display: inline-flex;
   align-items: center;
