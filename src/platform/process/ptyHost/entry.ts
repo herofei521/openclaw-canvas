@@ -14,6 +14,17 @@ import {
 } from './protocol'
 import { convertHighByteX10MouseReportsToSgr } from '../pty/x10Mouse'
 
+// Error handling for uncaught exceptions
+process.on('uncaughtException', error => {
+  console.error('[pty-host] uncaught exception:', error)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[pty-host] unhandled rejection at:', promise, 'reason:', reason)
+  process.exit(1)
+})
+
 type ParentPort = {
   on: (event: 'message', listener: (messageEvent: { data: unknown }) => void) => void
   postMessage: (message: unknown) => void
@@ -57,26 +68,43 @@ const onPtyExit = (sessionId: string, exitCode: number): void => {
 }
 
 function spawnPtySession(request: PtyHostSpawnRequest): void {
-  const sessionId = crypto.randomUUID()
-  const pty = spawn(request.command, request.args, {
-    cwd: request.cwd,
-    env: request.env,
-    cols: request.cols,
-    rows: request.rows,
-    name: 'xterm-256color',
-  })
+  try {
+    const sessionId = crypto.randomUUID()
+    
+    // Windows compatibility: ensure proper shell handling
+    const spawnOptions: Parameters<typeof spawn>[2] = {
+      cwd: request.cwd,
+      env: request.env,
+      cols: request.cols,
+      rows: request.rows,
+      name: 'xterm-256color',
+    }
+    
+    // On Windows, use conpty backend for better compatibility
+    if (process.platform === 'win32') {
+      // @ts-expect-error - node-pty Windows options
+      spawnOptions.useConpty = true
+      // @ts-expect-error - node-pty Windows options
+      spawnOptions.conptyInheritCursor = true
+    }
+    
+    const pty = spawn(request.command, request.args, spawnOptions)
 
-  sessions.set(sessionId, pty)
+    sessions.set(sessionId, pty)
 
-  pty.onData(data => {
-    onPtyData(sessionId, data)
-  })
+    pty.onData(data => {
+      onPtyData(sessionId, data)
+    })
 
-  pty.onExit(exit => {
-    onPtyExit(sessionId, exit.exitCode)
-  })
+    pty.onExit(exit => {
+      onPtyExit(sessionId, exit.exitCode)
+    })
 
-  respondOk(request.requestId, sessionId)
+    respondOk(request.requestId, sessionId)
+  } catch (error) {
+    console.error('[pty-host] spawn error:', error)
+    respondError(request.requestId, error)
+  }
 }
 
 function writeToSession(request: PtyHostWriteRequest): void {

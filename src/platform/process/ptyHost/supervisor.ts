@@ -401,7 +401,18 @@ export class PtyHostSupervisor {
           this.pendingResponses.delete(requestId)
           pending.reject(normalizedError)
         }
-        if (this.process === child) {
+        // Check if this is an EPIPE error (pipe closed)
+        const isEpipeError =
+          normalizedError.message.includes('EPIPE') ||
+          normalizedError.message.includes('broken pipe') ||
+          normalizedError.message.includes('write after end')
+        if (isEpipeError) {
+          this.reportIssue(`[pty-host] EPIPE detected: ${normalizedError.message}`)
+          // Force host restart on EPIPE
+          if (this.process === child) {
+            this.handleHostExit(1)
+          }
+        } else if (this.process === child) {
           this.handleHostExit(1)
         }
       }

@@ -90,6 +90,23 @@ export type AgentCustomModelOptionsByProvider = {
 
 export type { TaskPromptTemplate, TaskPromptTemplatesByWorkspaceId } from './taskPromptTemplates'
 
+export interface OpenClawApiConfig {
+  /** Gateway API base URL */
+  gatewayUrl: string
+  /** OAuth authorization endpoint */
+  oauthAuthorizeUrl: string
+  /** OAuth token endpoint */
+  oauthTokenUrl: string
+  /** Whether OpenClaw API integration is enabled */
+  enabled: boolean
+  /** Last connection test result */
+  lastConnectionTest?: {
+    success: boolean
+    timestamp: number
+    error?: string
+  }
+}
+
 export interface AgentSettings {
   language: UiLanguage
   uiTheme: UiTheme
@@ -126,6 +143,8 @@ export interface AgentSettings {
   updateChannel: AppUpdateChannel
   releaseNotesSeenVersion: string | null
   hideWorktreeMismatchDropWarning: boolean
+  /** OpenClaw API integration configuration */
+  openclawApi: OpenClawApiConfig
 }
 
 export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
@@ -179,6 +198,12 @@ export const DEFAULT_AGENT_SETTINGS: AgentSettings = {
   updateChannel: 'stable',
   releaseNotesSeenVersion: null,
   hideWorktreeMismatchDropWarning: false,
+  openclawApi: {
+    gatewayUrl: 'http://localhost:9876',
+    oauthAuthorizeUrl: 'http://localhost:9876/oauth/authorize',
+    oauthTokenUrl: 'http://localhost:9876/oauth/token',
+    enabled: true,
+  },
 }
 
 function isValidProvider(value: unknown): value is AgentProvider {
@@ -454,6 +479,32 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
     normalizeBoolean(value.hideWorktreeMismatchDropWarning) ??
     DEFAULT_AGENT_SETTINGS.hideWorktreeMismatchDropWarning
 
+  // Normalize OpenClaw API configuration
+  const openclawApiInput = isRecord(value.openclawApi) ? value.openclawApi : {}
+  const openclawApi: OpenClawApiConfig = {
+    gatewayUrl:
+      normalizeTextValue(openclawApiInput.gatewayUrl) ||
+      DEFAULT_AGENT_SETTINGS.openclawApi.gatewayUrl,
+    oauthAuthorizeUrl:
+      normalizeTextValue(openclawApiInput.oauthAuthorizeUrl) ||
+      DEFAULT_AGENT_SETTINGS.openclawApi.oauthAuthorizeUrl,
+    oauthTokenUrl:
+      normalizeTextValue(openclawApiInput.oauthTokenUrl) ||
+      DEFAULT_AGENT_SETTINGS.openclawApi.oauthTokenUrl,
+    enabled:
+      normalizeBoolean(openclawApiInput.enabled) ?? DEFAULT_AGENT_SETTINGS.openclawApi.enabled,
+    lastConnectionTest: isRecord(openclawApiInput.lastConnectionTest)
+      ? {
+          success: normalizeBoolean(openclawApiInput.lastConnectionTest.success) ?? false,
+          timestamp:
+            typeof openclawApiInput.lastConnectionTest.timestamp === 'number'
+              ? openclawApiInput.lastConnectionTest.timestamp
+              : 0,
+          error: normalizeTextValue(openclawApiInput.lastConnectionTest.error),
+        }
+      : undefined,
+  }
+
   return {
     language,
     uiTheme,
@@ -493,5 +544,6 @@ export function normalizeAgentSettings(value: unknown): AgentSettings {
     updateChannel,
     releaseNotesSeenVersion,
     hideWorktreeMismatchDropWarning,
+    openclawApi,
   }
 }

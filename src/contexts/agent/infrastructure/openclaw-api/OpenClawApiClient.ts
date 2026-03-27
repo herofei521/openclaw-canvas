@@ -438,6 +438,82 @@ export class OpenClawApiClient {
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
+
+  /**
+   * 测试与 OpenClaw Gateway 的连接
+   *
+   * @returns 连接测试结果
+   */
+  async testConnection(): Promise<{
+    success: boolean
+    message: string
+    timestamp: number
+    error?: string
+  }> {
+    this.log('Testing connection to:', this.config.baseUrl)
+
+    try {
+      // First, try to reach the gateway without authentication
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      try {
+        const response = await fetch(`${this.config.baseUrl}/health`, {
+          method: 'GET',
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          const result = {
+            success: true,
+            message: 'Gateway connection successful',
+            timestamp: Date.now(),
+          }
+          this.log('Connection test successful')
+          return result
+        }
+
+        // If /health endpoint doesn't exist, try the root
+        if (response.status === 404) {
+          const rootResponse = await fetch(this.config.baseUrl, {
+            method: 'GET',
+            signal: controller.signal,
+          })
+
+          if (rootResponse.ok || rootResponse.status === 401) {
+            // 401 is expected - means gateway is running but requires auth
+            return {
+              success: true,
+              message: 'Gateway is running (authentication required)',
+              timestamp: Date.now(),
+            }
+          }
+        }
+
+        return {
+          success: false,
+          message: `Gateway responded with status ${response.status}`,
+          timestamp: Date.now(),
+          error: `HTTP ${response.status}`,
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        throw fetchError
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      this.log('Connection test failed:', errorMessage)
+
+      return {
+        success: false,
+        message: 'Failed to connect to Gateway',
+        timestamp: Date.now(),
+        error: errorMessage,
+      }
+    }
+  }
 }
 
 // Re-export types for convenience
