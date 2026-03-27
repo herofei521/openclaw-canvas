@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "version": "0.2.1",
+  "channel": "stable",
+  "publishedAt": "2026-03-27T02:00:00.000Z",
+  "provenance": "curated",
+  "defaultLocale": "en",
+  "compareUrl": "https://github.com/herofei521/openclaw-canvas/compare/v0.2.0...v0.2.1",
+  "locales": {
+    "en": {
+      "summary": "OpenCove 0.2.1 fixes EPIPE startup errors, corrects Gateway port configuration, and adds Chinese tutorial.",
+      "items": [
+        {
+          "kind": "fixed",
+          "summary": "Fixed EPIPE startup error by enhancing PTY Host error handling and Windows compatibility.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "fixed",
+          "summary": "Corrected Gateway port from 9876 to 12082 to match actual server configuration.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "Added comprehensive Chinese tutorial (TUTORIAL_ZH.md) for local users.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "Pre-configured OpenClaw API connection settings with test functionality.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        }
+      ]
+    },
+    "zh-CN": {
+      "summary": "OpenCove 0.2.1 修复 EPIPE 启动错误，修正 Gateway 端口配置，新增中文使用教程。",
+      "items": [
+        {
+          "kind": "fixed",
+          "summary": "修复 EPIPE 启动错误，增强 PTY Host 错误处理和 Windows 兼容性。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "fixed",
+          "summary": "修正 Gateway 端口从 9876 改为 12082，匹配实际服务器配置。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "新增完整中文使用教程 TUTORIAL_ZH.md。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "预置 OpenClaw API 连接配置，支持连接测试功能。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        }
+      ]
+    }
+  }
+}
