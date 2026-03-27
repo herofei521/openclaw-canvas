@@ -437,20 +437,11 @@ export function SettingsPanel({
                 onTestOpenClawConnection={
                   onTestOpenClawConnection ||
                   (async () => {
-                    // Default implementation - test connection to gateway
+                    // Use IPC to bypass CORS restrictions
                     try {
-                      const response = await fetch(
-                        `${settings.openclawApi.gatewayUrl}/health`,
-                        { method: 'GET', signal: AbortSignal.timeout(5000) },
-                      )
-                      if (response.ok) {
-                        return { success: true, message: 'Connection successful' }
-                      }
-                      return {
-                        success: false,
-                        message: `HTTP ${response.status}`,
-                        error: `HTTP_${response.status}`,
-                      }
+                      return await window.opencoveApi.integration.openclaw.testConnection({
+                        gatewayUrl: settings.openclawApi.gatewayUrl,
+                      })
                     } catch (error) {
                       return {
                         success: false,

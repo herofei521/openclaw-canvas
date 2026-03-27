@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "version": "0.2.2",
+  "channel": "stable",
+  "publishedAt": "2026-03-27T08:00:00.000Z",
+  "provenance": "curated",
+  "defaultLocale": "en",
+  "compareUrl": "https://github.com/herofei521/openclaw-canvas/compare/v0.2.1...v0.2.2",
+  "locales": {
+    "en": {
+      "summary": "OpenCove 0.2.2 adds OpenClaw API Configuration UI for managing Gateway connection settings.",
+      "items": [
+        {
+          "kind": "added",
+          "summary": "Added OpenClaw API Configuration UI in settings for Gateway URL and OAuth credentials management.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "Added connection test functionality to verify Gateway connectivity from settings panel.",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        }
+      ]
+    },
+    "zh-CN": {
+      "summary": "OpenCove 0.2.2 新增 OpenClaw API 配置 UI，支持管理 Gateway 连接设置。",
+      "items": [
+        {
+          "kind": "added",
+          "summary": "在设置中新增 OpenClaw API 配置界面，支持管理 Gateway URL 和 OAuth 凭证。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        },
+        {
+          "kind": "added",
+          "summary": "新增连接测试功能，可从设置面板验证 Gateway 连通性。",
+          "url": null,
+          "prNumber": null,
+          "sha": null
+        }
+      ]
+    }
+  }
+}

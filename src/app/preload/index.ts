@@ -146,6 +146,12 @@ const opencoveApi = {
       ): Promise<ResolveGitHubPullRequestsResult> =>
         invokeIpc(IPC_CHANNELS.integrationGithubResolvePullRequests, payload),
     },
+    openclaw: {
+      testConnection: (
+        payload: { gatewayUrl: string },
+      ): Promise<{ success: boolean; message: string; error?: string }> =>
+        invokeIpc(IPC_CHANNELS.openclawTestConnection, payload),
+    },
   },
   update: {
     getState: (): Promise<AppUpdateState> => invokeIpc(IPC_CHANNELS.appUpdateGetState),

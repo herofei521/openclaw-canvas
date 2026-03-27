@@ -31,6 +31,7 @@ export const IPC_CHANNELS = {
   worktreeRenameBranch: 'worktree:rename-branch',
   worktreeSuggestNames: 'worktree:suggest-names',
   integrationGithubResolvePullRequests: 'integration:github:resolve-pull-requests',
+  openclawTestConnection: 'openclaw:test-connection',
   windowChromeSetTheme: 'window-chrome:set-theme',
   windowMetricsGetDisplayInfo: 'window-metrics:get-display-info',
   ptySpawn: 'pty:spawn',
