@@ -1,6 +1,6 @@
 {
   "name": "opencove",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "productName": "OpenCove",
   "description": "Your infinite canvas workspace for agents, tasks, knowledge, and research.",
   "main": "./out/main/index.js",
